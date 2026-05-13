@@ -11,7 +11,7 @@
 #
 # Depends on: htmltools
 
-make_mudface <- function(mud_level, size = "160px", label = TRUE) {
+make_mudface <- function(mud_level, size = "160px", label = TRUE, temp_c = NULL) {
 
   # Map numeric score to state 0-4
   state <- if (is.na(mud_level)) {
@@ -170,6 +170,30 @@ make_mudface <- function(mud_level, size = "160px", label = TRUE) {
       "3" = "Very Muddy",
       "4" = "Impassable"
     )
+  }
+
+  # ── Sweat drops when hot (non-frozen states only) ────────────────────────
+  if (!is.null(temp_c) && !is.na(temp_c) && state != -1L && temp_c > 28) {
+    heavy       <- temp_c > 35
+    sweat_drops <- paste0(
+      '<path d="M35,42 C31.5,45.5 31.5,48.5 35,52 C38.5,48.5 38.5,45.5 35,42Z"',
+      ' fill="#7EB8D4" opacity="0.85"/>',
+      '<path d="M125,42 C121.5,45.5 121.5,48.5 125,52 C128.5,48.5 128.5,45.5 125,42Z"',
+      ' fill="#7EB8D4" opacity="0.85"/>'
+    )
+    if (heavy) {
+      sweat_drops <- paste0(sweat_drops,
+        '<path d="M62,18 C59,21 59,25 62,27 C65,25 65,21 62,18Z"',
+        ' fill="#7EB8D4" opacity="0.80"/>',
+        '<path d="M98,18 C95,21 95,25 98,27 C101,25 101,21 98,18Z"',
+        ' fill="#7EB8D4" opacity="0.80"/>',
+        '<path d="M35,52 Q34,62 35,72" stroke="#7EB8D4" stroke-width="2"',
+        ' fill="none" stroke-linecap="round" opacity="0.50"/>',
+        '<path d="M125,52 Q126,62 125,72" stroke="#7EB8D4" stroke-width="2"',
+        ' fill="none" stroke-linecap="round" opacity="0.50"/>'
+      )
+    }
+    svg_content <- paste0(svg_content, sweat_drops)
   }
 
   svg <- glue(

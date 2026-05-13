@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
   library(htmltools)
   library(scales)
   library(glue)
+  library(patchwork)
 })
 
 # ── Global ggplot theme ─────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
 - source: project
   gh-pages:
-    branch: gh-pages
+    - id: adammwilson/TrailPulse
+      url: https://adammwilson.github.io/TrailPulse/

@@ -57,7 +57,8 @@ fetch_weather <- function(
       daily      = paste(c(
         "precipitation_sum", "temperature_2m_max", "temperature_2m_min",
         "et0_fao_evapotranspiration", "snowfall_sum", "weather_code",
-        "wind_speed_10m_max"
+        "wind_speed_10m_max",
+        "relative_humidity_2m_max", "relative_humidity_2m_min"
       ), collapse = ","),
       hourly     = paste(c(
         "soil_moisture_0_to_7cm",   # ERA5-Land layer 1 (0-7 cm)
@@ -83,7 +84,9 @@ fetch_weather <- function(
       et0           = et0_fao_evapotranspiration,
       snowfall      = snowfall_sum,
       weathercode   = weather_code,
-      windspeed_max = wind_speed_10m_max
+      windspeed_max = wind_speed_10m_max,
+      humidity_max  = relative_humidity_2m_max,
+      humidity_min  = relative_humidity_2m_min
     )
 
   # Aggregate hourly soil to daily mean
@@ -116,7 +119,8 @@ fetch_weather <- function(
       daily         = paste(c(
         "precipitation_sum", "temperature_2m_max", "temperature_2m_min",
         "et0_fao_evapotranspiration", "snowfall_sum", "weather_code",
-        "wind_speed_10m_max"
+        "wind_speed_10m_max",
+        "relative_humidity_2m_max", "relative_humidity_2m_min"
       ), collapse = ","),
       hourly        = paste(c(
         "soil_moisture_0_to_1cm",
@@ -143,7 +147,9 @@ fetch_weather <- function(
       et0           = et0_fao_evapotranspiration,
       snowfall      = snowfall_sum,
       weathercode   = weather_code,
-      windspeed_max = wind_speed_10m_max
+      windspeed_max = wind_speed_10m_max,
+      humidity_max  = relative_humidity_2m_max,
+      humidity_min  = relative_humidity_2m_min
     )
 
   fc_soil <- .om_to_tibble(fc_body$hourly) |>
