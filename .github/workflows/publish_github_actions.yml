@@ -38,6 +38,8 @@ jobs:
           cache-version: 1
 
       - name: Render and Publish
-        run: quarto publish gh-pages --id adammwilson/TrailPulse --no-browser
+        uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
