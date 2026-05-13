@@ -38,7 +38,8 @@ fetch_weather <- function(
     forecast_days    = FORECAST_DAYS,
     cache_dir        = "data/cache",
     hist_max_age_h   = 24,   # archive-api: re-fetch at most once per day
-    fc_max_age_h     = 1     # forecast-api: re-fetch at most once per hour
+    fc_max_age_h     = 1,    # forecast-api: re-fetch at most once per hour
+    api_key          = Sys.getenv("OPEN_METEO_API_KEY", unset = "")
 ) {
   if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE)
 
@@ -56,6 +57,11 @@ fetch_weather <- function(
     as.numeric(difftime(Sys.time(), file.mtime(path), units = "hours"))
   }
 
+  # Optionally add API key to a request
+  .maybe_key <- function(req) {
+    if (nzchar(api_key)) httr2::req_url_query(req, apikey = api_key) else req
+  }
+
   # ── 1. HISTORICAL — archive-api.open-meteo.com (cached 24 h) ─────────────
   hist_age <- .cache_age_h(hist_file)
   if (hist_age < hist_max_age_h) {
@@ -64,64 +70,80 @@ fetch_weather <- function(
   } else {
     message("Fetching historical weather (", start, " to ", hist_end, ")...")
 
-    hist_resp <- httr2::request("https://archive-api.open-meteo.com/v1/archive") |>
-      httr2::req_url_query(
-        latitude   = lat,
-        longitude  = lon,
-        start_date = format(start),
-        end_date   = format(hist_end),
-        timezone   = tz,
-        daily      = paste(c(
-          "precipitation_sum", "temperature_2m_max", "temperature_2m_min",
-          "et0_fao_evapotranspiration", "snowfall_sum", "weather_code",
-          "wind_speed_10m_max",
-          "relative_humidity_2m_max", "relative_humidity_2m_min"
-        ), collapse = ","),
-        hourly     = paste(c(
-          "soil_moisture_0_to_7cm",
-          "soil_moisture_7_to_28cm",
-          "soil_temperature_0_to_7cm",
-          "snow_depth"
-        ), collapse = ",")
-      ) |>
-      httr2::req_retry(
-        max_tries    = 5,
-        is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
-        backoff      = \(i) 30 * 2^(i - 1L)
-      ) |>
-      httr2::req_perform()
+    hist <- tryCatch({
+      hist_resp <- httr2::request("https://archive-api.open-meteo.com/v1/archive") |>
+        httr2::req_url_query(
+          latitude   = lat,
+          longitude  = lon,
+          start_date = format(start),
+          end_date   = format(hist_end),
+          timezone   = tz,
+          daily      = paste(c(
+            "precipitation_sum", "temperature_2m_max", "temperature_2m_min",
+            "et0_fao_evapotranspiration", "snowfall_sum", "weather_code",
+            "wind_speed_10m_max",
+            "relative_humidity_2m_max", "relative_humidity_2m_min"
+          ), collapse = ","),
+          hourly     = paste(c(
+            "soil_moisture_0_to_7cm",
+            "soil_moisture_7_to_28cm",
+            "soil_temperature_0_to_7cm",
+            "snow_depth"
+          ), collapse = ",")
+        ) |>
+        .maybe_key() |>
+        httr2::req_retry(
+          max_tries    = 5,
+          is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
+          backoff      = \(i) 30 * 2^(i - 1L)
+        ) |>
+        httr2::req_perform()
 
-    hist_body  <- .om_parse(hist_resp)
+      hist_body  <- .om_parse(hist_resp)
 
-    hist_daily <- .om_to_tibble(hist_body$daily) |>
-      rename(
-        precip        = precipitation_sum,
-        temp_max      = temperature_2m_max,
-        temp_min      = temperature_2m_min,
-        et0           = et0_fao_evapotranspiration,
-        snowfall      = snowfall_sum,
-        weathercode   = weather_code,
-        windspeed_max = wind_speed_10m_max,
-        humidity_max  = relative_humidity_2m_max,
-        humidity_min  = relative_humidity_2m_min
-      )
+      hist_daily <- .om_to_tibble(hist_body$daily) |>
+        rename(
+          precip        = precipitation_sum,
+          temp_max      = temperature_2m_max,
+          temp_min      = temperature_2m_min,
+          et0           = et0_fao_evapotranspiration,
+          snowfall      = snowfall_sum,
+          weathercode   = weather_code,
+          windspeed_max = wind_speed_10m_max,
+          humidity_max  = relative_humidity_2m_max,
+          humidity_min  = relative_humidity_2m_min
+        )
 
-    hist_soil <- .om_to_tibble(hist_body$hourly) |>
-      group_by(date) |>
-      summarise(
-        soil_moisture_0_1  = mean(soil_moisture_0_to_7cm,    na.rm = TRUE),
-        soil_moisture_1_3  = mean(soil_moisture_0_to_7cm,    na.rm = TRUE),
-        soil_moisture_3_9  = mean(soil_moisture_7_to_28cm,   na.rm = TRUE),
-        soil_temp_0cm      = mean(soil_temperature_0_to_7cm, na.rm = TRUE),
-        snow_depth         = mean(snow_depth, na.rm = TRUE) * 100,
-        .groups = "drop"
-      )
+      hist_soil <- .om_to_tibble(hist_body$hourly) |>
+        group_by(date) |>
+        summarise(
+          soil_moisture_0_1  = mean(soil_moisture_0_to_7cm,    na.rm = TRUE),
+          soil_moisture_1_3  = mean(soil_moisture_0_to_7cm,    na.rm = TRUE),
+          soil_moisture_3_9  = mean(soil_moisture_7_to_28cm,   na.rm = TRUE),
+          soil_temp_0cm      = mean(soil_temperature_0_to_7cm, na.rm = TRUE),
+          snow_depth         = mean(snow_depth, na.rm = TRUE) * 100,
+          .groups = "drop"
+        )
 
-    hist <- hist_daily |>
-      left_join(hist_soil, by = "date") |>
-      mutate(source = "history")
+      result <- hist_daily |>
+        left_join(hist_soil, by = "date") |>
+        mutate(source = "history")
 
-    saveRDS(hist, hist_file)
+      saveRDS(result, hist_file)
+      result
+
+    }, error = function(e) {
+      # ── Stale-if-error: use existing cache even if past TTL ───────────────
+      if (file.exists(hist_file)) {
+        warning(sprintf(
+          "Archive API failed (%s). Using stale cache (%.0f h old).",
+          conditionMessage(e), hist_age
+        ))
+        readRDS(hist_file)
+      } else {
+        stop(e)
+      }
+    })
   }
 
   # ── 2. FORECAST + RECENT — api.open-meteo.com (cached 1 h) ───────────────
@@ -153,6 +175,7 @@ fetch_weather <- function(
           "snow_depth"
         ), collapse = ",")
       ) |>
+      .maybe_key() |>
       httr2::req_retry(
         max_tries    = 5,
         is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
