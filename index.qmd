@@ -1,433 +1,48 @@
 ---
-title: "Hunters Creek Trail Conditions"
+title: "TrailPulse — Local Trail Conditions"
 execute:
   echo: false
   warning: false
+  message: false
 ---
 
-```{r}
+```{r setup}
+source("R/setup.R")
+library(yaml)
+library(glue)
+library(purrr)
+library(stringr)
 
-library(tidyverse)
-#| include: false
-#library(rnoaa)
-
-# look at forecasts: https://github.com/bluegreen-labs/ecmwfr
-# 
-# # these are just used to define the season - years don't matter
-# season_start=as.Date("2020-11-01")
-# season_stop=as.Date("2021-4-01")
-# 
-# # this year
-# this_winter=winter=ifelse(month(now())<6,year(now())-1,year(now()))
-# fsdate=ymd(paste(ifelse(month(now())<6,2021,2020),month(now()),day(now()),sep="-"))
-# 
-# 
-# # stations=ghcnd_stations()
-# # 
-# # stations%>%filter(
-# #   grepl("ELMA",name),
-# #   grepl("NY",state),
-# #   element%in%c("SNOW","TMIN","TMAX"),
-# #   last_year>=2017,
-# # ) #%>% View()
-# # 
-# # 
-# # stations%>%filter(
-# #   grepl("BUFFALO",name),
-# #   grepl("NY",state),
-# #   element=="SNOW",
-# #   last_year>=2017,
-# # )
-# # 
-# # stations %>% filter(
-# #   between(latitude, 42.7,42.9),
-# #   between(longitude,-78.7,-78.5),
-# #   first_year<=2000,
-# #   last_year>=2018
-# # )
-
-
-dd <- read_csv("https://www.ncei.noaa.gov/access/services/data/v1?stations=US1NYER0075&dataset=daily-summaries&startDate=2000-01-01&endDate=2024-10-24&options=includeAttributes:true,includeStationLocation:1,includeStationName:1")
-
-#dd <- read_csv("https://www.ncei.noaa.gov/access/services/data/v1?stations=US1NYER0138&dataset=daily-summaries&startDate=2000-01-01&endDate=2024-10-24&options=includeAttributes:true,includeStationLocation:1,includeStationName:1")
-
-
-glimpse(dd)
-summary(dd)
-
-dd|>
-  select(where(~sum(!is.na(.x)) > 0 & is.numeric(.x))) |>
-  bind_cols(select(dd,station=STATION,date=DATE)) -> dd2
-  
- glimpse(dd2)
-
- ggplot(dd2,aes(x=TMAX/10,group=station,col=station))+geom_density()
- 
- ggplot(dd2,aes(y=TMAX/10,x=date,group=station,col=station))+geom_line()
- 
-ggplot(dd2,aes(y=SNWD/10,x=date,group=station,col=station))+geom_line()
- 
- #library(GSODR)
- #nearest_stations(LAT=42.750580, LON=-78.539871,distance = 50)
- #tbar <- get_GSOD(years = 2020:2024, station = "US1NYER0066")
- #tbar
-
-#install.packages("rwunderground")
+all_parks <- yaml::read_yaml("data/parks.yml")[["parks"]]
 ```
 
-```{r}
-library(openmeteo)
+> **Updated daily.** Conditions are estimated from weather data and soil moisture models — not a substitute for official trail closures.
 
+```{r park-cards}
+#| output: asis
 
-w <- weather_history(c(42.750580,-78.539871),start = "2020-09-01",end=today(),
-                  daily=list("temperature_2m_max","temperature_2m_min","precipitation_sum","weather_code",
-                             "shortwave_radiation_sum","et0_fao_evapotranspiration",
-                             "wind_speed_10m_max","sunrise","sunset")) |>
-  mutate(type="history")
+card_html <- purrr::map_chr(all_parks, function(p) {
+  park_url   <- paste0("parks/", p$id, "/index.html")
+  activities <- if (!is.null(p$activities))
+    paste(stringr::str_to_title(gsub("_", " ", p$activities)), collapse = " \u00b7 ")
+  else ""
 
-#h1 <- weather_forecast(c(42.750580,-78.539871),start = "2020-09-01",end=today(),
-#                                    hourly = "soil_moisture_0_to_1cm") |>
-#  mutate(type="history")
+  glue::glue(
+    '<a href="{park_url}" class="tp-park-card" style="display:block;text-decoration:none;color:inherit;">',
+    '  <div class="park-name">{p$name}</div>',
+    '  <div class="park-location">{p$location}</div>',
+    '  <div style="font-size:0.85rem;color:#555;margin-bottom:0.5rem;">{p$description}</div>',
+    '  <div style="margin-top:0.75rem;font-size:0.8rem;color:#777;">{activities}</div>',
+    '</a>',
+    .sep = "\n"
+  )
+})
 
-
-
-f=weather_forecast(c(42.750580,-78.539871),start = today()-2,end=today()+7,
-                  daily=list("temperature_2m_max","temperature_2m_min","precipitation_sum","weather_code",
-                             "shortwave_radiation_sum","et0_fao_evapotranspiration",
-                             "wind_speed_10m_max","sunrise","sunset"))|>
-  mutate(type="forecast")
-
-
-d=bind_rows(w,f) |>
-  mutate(daily_temperature_2m_mean=(daily_temperature_2m_max+daily_temperature_2m_min)/2)
-
-
-ggplot(d,aes(x=date,y=daily_temperature_2m_mean,
-             ymax=daily_temperature_2m_max,ymin=daily_temperature_2m_min,fill=type))+
-  geom_ribbon()+
-  geom_line()+
-  geom_vline(xintercept=today(),col="red")+
-  theme_minimal()+
-  coord_cartesian(xlim=c(today()-30,today()+7))
-
+cat('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-top:1.5rem;">\n')
+cat(paste(card_html, collapse = "\n"))
+cat('\n</div>\n')
 ```
 
-```{r}
-library(xml2)
-library(tidyverse)
+---
 
-#https://forecast.weather.gov/MapClick.php?lat=42.7371&lon=-78.5213&unit=0&lg=english&FcstType=digital
-xml_address = "https://forecast.weather.gov/MapClick.php?lat=42.7371&lon=-78.5213&FcstType=digitalDWML"
-
-forecast = as_list(read_xml(xml_address)) %>% 
-  tibble::as_tibble() %>%
-  unnest_longer(dwml) 
-
-```
-
-```{r}
-
-# station="USC00308910" #Wales
-# station_name="Wales, NY"
-# # station_name=filter(stations,id==station) %>% slice(1) %>% mutate(fullname=paste0(name,", ",state)) %>% select(fullname) %>% 
-# #   as.character()
-# 
-# sdata=meteo_tidy_ghcnd(station, #wales
-#                       var=c("TMAX","TMIN","SNOW","SNWD"),
-#                       date_min = as.Date("1900-01-01")
-#                       )
-# 
-# #tdata=meteo_tidy_ghcnd("USW00014733", #Buffalo
-# #                      var=c("TMAX","TMIN"),
-# #                      date_min = as.Date("1900-01-01")
-# #                      )
-# 
-# 
-# data= sdata%>%
-#   mutate(
-#   snow=ifelse(is.na(snow),0,snow/10), #convert to cm
-#   snwd=ifelse(is.na(snwd),0,snwd/10), #convert to cm
-#   tmin=tmin/10,
-#   tmax=tmax/10,
-#   day=day(date),
-#   month=month(date),
-#   year=year(date),
-#   doy=yday(date),
-#   winter=ifelse(month<6,year-1,year),
-#   winters=paste(winter,winter+1,sep="-"),
-#   sday=date-ymd(paste(winter,11,1)),
-#   dyear=year+(month/12),
-#   fyear=ymd(paste(ifelse(month<6,year,year-1),month,day,sep="-")),
-#   sdate=ymd(paste(ifelse(month<6,2021,2020),month,day,sep="-")),
-#   season=ifelse(between(sdate,season_start,season_stop),T,F),
-#   decade=floor(winter/10)*10,
-#   era=cut(winter,breaks = c(2000,2010,2020)))%>%
-#   group_by(winters)
-# 
-# firstday<-
-#   data%>%
-#   filter(snwd>2)%>%
-#   summarize(first=first(date,order_by = date)) %>% 
-#   mutate(month=month(first))
-# 
-# data_winter<- data %>%
-#   group_by(winter)%>%
-#   summarize(
-#     days_total=n(),
-#     days_depth01cm=sum(snwd>1,na.rm=T),
-#     days_depth10cm=sum(snwd>=10,na.rm=T),
-#     days_depth20cm=sum(snwd>=20,na.rm=T),
-#     days_snowfall10cm=sum(snow>=10,na.rm=T),
-#     days_snowfall20cm=sum(snow>=20,na.rm=T),
-# )
-```
-
-```{r}
-#| eval: false
-# # Snowfall totals
-# data_winter %>% 
-#   filter(days_total>350) %>% 
-#   select(-days_total,-contains("depth")) %>% 
-#   gather(index,value,-winter) %>% 
-#   ggplot(aes(x=as.numeric(winter),y=value,color=index))+
-#   geom_line()+
-#   xlab("Year")+
-#   ylab("Days per year with snowfall > 10cm (4 inches)")
-# 
-# data_winter %>% 
-#   filter(days_total>350) %>% 
-#   select(-days_total,-contains("snowfall")) %>% 
-#   gather(index,value,-winter) %>% 
-#   ggplot(aes(x=as.numeric(winter),y=value,color=index))+
-#   geom_line()+
-#   xlab("Year")
-
-
-```
-
-# Snowfall & Snow Depth
-
-```{r}
-#| fig-width: 8
-#| fig-height: 13
-#| fig-cap: "Snowfall and Snowdepth 2001-2021"
-
-#     
-# syear=2000
-# snwd_thresh=10
-# 
-# snow_days<-
-#   data %>% 
-#   filter(winter>syear) %>%    
-#   group_by(winter) %>% 
-#   summarise(snow_days=sum(snwd>snwd_thresh)) %>% 
-#   mutate(sdate=as_date("2020-12-1"))
-# 
-# data %>%  
-#   filter(winter>syear) %>%    
-#   ggplot(aes(x=sdate))+   
-#   facet_wrap(~winter,ncol=3)+   
-#   xlim(season_start,season_stop)+   
-#   geom_area(aes(y=snwd),fill=grey(0.6))+   
-#   geom_line(aes(y=snow),col="red")+  
-#   geom_point(aes(y=-10,col=snwd>10),size=.1,show.legend = F)+
-#     scale_color_manual(values=c("transparent","darkblue"))+
-#   geom_text(aes(x=sdate,y=100,label=paste(snow_days," snow days")),
-#              data=snow_days,size=2)+
-#   ylab("Snowfall (red) & Snow Depth (grey) (cm)")+   
-#   xlab("Date")+
-#   ggtitle(paste0("Snowfall and Snowdepth 2001-2023 (",station_name,")"),
-#           "Red indcates snowfall, grey indicates snow depth\nBlue dots indicate days with >10cm of snow depth")+
-#   coord_fixed(ratio=.4)+
-#   scale_y_continuous(#limits = c(-2,100),
-#     sec.axis = sec_axis(~.*0.033, name="Snowfall / Depth (feet)"))
-```
-
-```{r}
-# sum_snow <- data %>% 
-#   group_by(winter) %>% 
-#   filter(between(sdate,season_start,season_stop)) %>% 
-#   arrange(dyear) %>% 
-#   mutate(snowfall=cumsum(snow),
-#          maxsnow=max(snowfall))
-# 
-# sum_snow %>% 
-#   ggplot(aes(x=sdate,y=snowfall,color=winter,
-#              group=as.factor(winter)))+
-#   geom_vline(aes(xintercept=fsdate),col="red")+
-#   geom_text(aes(y=-10,x=fsdate,label="Today",hjust=1.1),col="red",inherit.aes = F)+
-#   geom_line()+
-#   geom_line(data=filter(sum_snow,winter==this_winter),col="black",size=2)+
-#   geom_line(data=filter(sum_snow,winter==this_winter-1),col="black",size=1)+
-#   geom_text(aes(label=winter,x=ymd("20210410"),y=maxsnow),size=3)+
-#   scale_color_viridis_c(name="Year")+
-#     scale_x_date(name = "Date",
-#                breaks='1 month',
-#                labels = date_format("%b"))+
-#     geom_smooth(aes(group=1),col="red")+
-#   ylab("Cumulative Snowfall (cm)")
-```
-
-# Skiable days
-
-```{r}
-# ski_depth=10
-# 
-# data %>% 
-#   group_by(winter) %>% 
-#   arrange(dyear) %>% 
-#   mutate(ski_day=snwd>ski_depth,
-#          ski_day_smooth=rollmean(ski_day,k = 3,fill = NA)) %>% 
-#   ungroup() %>% 
-#   group_by(sdate) %>% 
-#   summarize(ski_day=mean(ski_day)*100) %>% 
-#   ggplot(aes(x=sdate,y=ski_day))+
-#   geom_vline(aes(xintercept=fsdate),col="red")+
-#   geom_text(aes(y=-5,x=fsdate,label="Today",hjust=1.1),col="red",inherit.aes = F)+
-#   geom_smooth(span=.2)+
-#   geom_point()+
-#   ylab("Proportion Skiable Days (%)")+
-#   scale_x_date(name = "Date",
-#                limits = ymd(c("20201001","20210501")),
-#                breaks='1 month',
-#                labels = date_format("%b"))+
-#   ggtitle("Proportion Skiable Days",
-#           subtitle = paste("% Days with Snowdepth >",
-#                            ski_depth,"cm over ",
-#                            paste(range(data$year),
-#                                  collapse="-")))
-#   
-
-```
-
-```{r}
-# data %>% 
-#   group_by(winter) %>% 
-#   arrange(dyear) %>% 
-#   ungroup() %>% 
-#   group_by(sdate) %>% 
-#   summarize(mean_snwd=mean(snwd)) %>% 
-#   ggplot(aes(x=sdate,y=mean_snwd))+
-#   geom_vline(aes(xintercept=fsdate),col="red")+
-#   geom_text(aes(y=-1,x=fsdate,label="Today",hjust=1.1),col="red",inherit.aes = F)+
-#   geom_smooth(span=.2)+
-#   geom_point()+
-#   ylab("Mean Snow Depth across years (cm)")+
-#   scale_x_date(name = "Date",
-#                limits = ymd(c("20201001","20210501")),
-#                breaks='1 month',
-#                labels = date_format("%b"))+
-#   ggtitle("Mean Snow Depth",
-#           subtitle = paste("Daily mean over years (",                           paste(range(data$year),
-#                                  collapse="-"),")"))+
-#     scale_y_continuous(
-#       sec.axis = sec_axis(~.*0.39, name="Snow Depth (inches)"))
-
-  
-```
-
-## Ice Skating - not finished
-
-```{r}
-
-# # using ICe Growth Formula from https://www.britannica.com/science/lake-ice/Ice-growth
-# 
-# #Ta is the air temperature, 
-# Tm=0 # Tm is the freezing point,, 
-# k=2.24 # k is the thermal conductivity of ice (2.24 watts per metre kelvin)
-# rho= 916 # density of ice (916 kilograms per cubic metre)
-# L= 3.34e5 #L is the latent heat of fusion (3.34 × 105 joules per kilogram)
-# t=100 #t is the time since initial ice formation.
-# Hia=20 # The exact value of the bulk transfer coefficient (Hia) depends on the various components of the energy budget, but it usually falls between 10 and 30 watts per square metre kelvin. 
-# 
-# idata <- data %>% 
-#   mutate(tmean=(tmax+tmin)/2,
-#          fdd=cumsum(tmean),
-#          h=(((((2*k)/(rho*L))*(Tm-tmean)*t)+(k/Hia)^2)^.5)-(k/Hia))
-# 
-# select(idata,date,tmean,h) %>% glimpse()
-# 
-# idata %>% 
-#   group_by(winter) %>% 
-#   arrange(dyear) %>% 
-#   ungroup() %>% 
-# #  group_by(sdate) %>% 
-# #  summarize(mean_fdd=mean(fdd, na.rm=T)) %>% 
-#   ggplot(aes(x=sdate,y=h))+
-#   geom_vline(aes(xintercept=fsdate),col="red")+
-#   geom_text(aes(y=-1,x=fsdate,label="Today",hjust=1.1),col="red",inherit.aes = F)+
-#   geom_smooth(span=.2)+
-#   geom_point()+
-#   ylab("Ice Thickness (cm)")+
-#   scale_x_date(name = "Date",
-#                limits = ymd(c("20201001","20210501")),
-#                breaks='1 month',
-#                labels = date_format("%b"))+
-#   ggtitle("Mean Snow Depth",
-#           subtitle = paste("Daily mean over years (",                           paste(range(data$year),
-#                                  collapse="-"),")"))+
-#     scale_y_continuous(
-#       sec.axis = sec_axis(~.*0.39, name="Snow Depth (inches)"))
-
-```
-
-# Streamflow
-
-Explore USGS river data contained [here](https://waterdata.usgs.gov/monitoring-location/04214500/#parameterCode=00060&period=P365D).
-
-```{r}
-library(dataRetrieval)
-library(dygraphs)
-library(lubridate)
-library(zoo)
-# Buffalo River
-siteNumber <- "04214500"
-BuffaloRiverInfo <- readNWISsite(siteNumber)
-
-# Raw daily data:
-parameterCd <- "00060"
-pCode <- readNWISpCode(parameterCd)
-
-river <- readNWISdv(
-  siteNumber, parameterCd,
-  "2000-01-01", as.character(today())
-) |>
-  select(date=Date,
-         stream_flow=X_00060_00003)
-
-
-river$dateyear= river$date
-year(river$dateyear) <- 2024
-river$year= year(river$date)
-
-river2 <- river |>
-  arrange(date)|>
-  mutate(m7=rollmedian(stream_flow,align = "left",k=7,fill=NA))
-
-#  filter(as_date(Date)>as_date("20150101")) |>
-river2 |>
-ggplot(aes(x=dateyear,y=m7,col=as_factor(year)))+
-  geom_line()+
-  xlab("Date")+
-  ylab("Streamflow (cubic feet per second)")+
-  geom_vline(aes(xintercept=today()),col="red")
-
-
-river3 <-
-  select(river2,dateyear,year, stream_flow) |>
-  filter(year==year(today()))
-
-river_data <- river2 |>
-  select(-date,-stream_flow) |>
-  spread(year, value=m7) |>
-  left_join(river3,by="dateyear") |>
-  rename(date=dateyear)
-
-
-river_data |>
-  select(-year)|>
-  dygraph(xlab="date") |>
-  dyRangeSelector(dateWindow = c(today()-90, today()))
-  
-
-```
+*Trail condition data sourced from [Open-Meteo](https://open-meteo.com), [USGS National Water Information System](https://waterdata.usgs.gov), and [NWS](https://www.weather.gov). Not affiliated with Erie County Parks or any land management authority.*

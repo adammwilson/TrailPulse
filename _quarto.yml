@@ -1,15 +1,34 @@
 project:
   type: website
+  output-dir: _site
+
+execute:
+  freeze: auto
 
 website:
-  title: "Hunters Creek Park Condition Report"
+  title: "TrailPulse"
+  description: "Local trail conditions for hikers and cyclists"
+  favicon: include/favicon.png
   navbar:
     left:
       - href: index.qmd
-        text: Home
+        text: Parks
+      - text: Parks
+        menu:
+          - href: parks/hunters-creek/index.qmd
+            text: "Hunters Creek Park"
+    right:
+      - icon: github
+        href: https://github.com/adammwilson/TrailPulse
+  page-footer:
+    left: "Trail conditions data updated daily. Not a substitute for official trail status."
+    right: "Built with [Quarto](https://quarto.org)"
 
 format:
   html:
-    theme: cosmo
-    includes:
-        after_body: include/after_body.html
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: false
+    include-after-body: include/after_body.html
+    css: include/styles.css
