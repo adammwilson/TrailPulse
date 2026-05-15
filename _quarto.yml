@@ -1,15 +1,22 @@
 project:
   type: website
   output-dir: _site
+  resources:
+    - img/
 
 execute:
   freeze: auto
 
 website:
   title: "TrailPulse"
-  description: "Local trail conditions for hikers and cyclists"
-  favicon: include/favicon.png
+  description: "Live mud scores, snow conditions, and 7-day forecasts for local trails. Know before you go."
+  favicon: img/favicon.png
+  open-graph: true
+  twitter-card:
+    card-style: summary_large_image
   navbar:
+    logo: img/logo.png
+    logo-alt: "TrailPulse"
     left:
       - href: index.qmd
         text: Parks

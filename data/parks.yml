@@ -19,11 +19,11 @@ parks:
       1,000 acres of hardwood forest in Elma, NY with 18 miles of multi-use
       trails popular for hiking, mountain biking, and winter Nordic skiing.
     trail_data: data/hunters-creek/trails
-    # Mud model calibration: adjust sigmoid midpoint and steepness for local soils
+    # Mud model calibration: clay soils — reactive, retains water, sharp wet/dry transition
     mud_calibration:
-      midpoint: 0.35   # soil wetness fraction at which mud level = 5
-      steepness: 12    # higher = sharper transition
-      precip_boost: 1.0 # added mud levels if >5mm precip in last 24h
+      midpoint: 0.28    # clay becomes soft/muddy at lower soil-wetness fraction than loam
+      steepness: 15     # sharper transition — clay goes from rideable to unrideable quickly
+      precip_boost: 1.5 # clay surface saturates fast; added mud levels if >5mm in last 24h
     # Snow season definition
     snow_season:
       start_month: 11

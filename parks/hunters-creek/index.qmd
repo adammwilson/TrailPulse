@@ -1,6 +1,7 @@
 ---
 title: "Hunters Creek Park"
 subtitle: "Elma, NY — Trail Conditions Report"
+image: og-card.png
 execute:
   echo: false
   warning: false
@@ -20,6 +21,8 @@ source("../../R/snow_model.R")
 source("../../R/plots.R")
 source("../../R/mudface.R")
 source("../../R/snowface.R")
+source("../../R/fetch_ndvi.R")
+source("../../R/og_card.R")
 ```
 
 ```{r fetch-data}
@@ -31,6 +34,9 @@ nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
   message("NWS fetch failed: ", e$message); .nws_empty()
 })
 snow_summary <- current_snow_summary(weather_mud)
+ndvi_data   <- tryCatch(fetch_ndvi(), error = function(e) {
+  warning("NDVI fetch failed: ", e$message); NULL
+})
 
 # Today's conditions
 today_row  <- today_mud(weather_mud)
@@ -43,6 +49,43 @@ is_winter  <- month(Sys.Date()) >= 11 | month(Sys.Date()) <= 4
 show_snow  <- is_winter | depth_cm > 2
 
 last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
+
+# Generate OG/social-media card image with today's conditions
+precip_7d <- weather_mud |>
+  filter(date >= Sys.Date() - 7, date <= Sys.Date(), source == "history") |>
+  summarise(total = sum(precip, na.rm = TRUE)) |>
+  pull(total)
+
+# 3-day mud forecast summary
+fc_rows <- weather_mud |>
+  filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
+forecast_summary <- if (nrow(fc_rows) >= 1 && !all(is.na(fc_rows$mud_level))) {
+  avg_fc <- mean(fc_rows$mud_level, na.rm = TRUE)
+  delta  <- avg_fc - coalesce(mud_now, avg_fc)
+  dplyr::case_when(
+    delta < -1.5 ~ "Getting much drier",
+    delta < -0.5 ~ "Getting drier",
+    delta >  1.5 ~ "Getting much muddier",
+    delta >  0.5 ~ "Getting muddier",
+    avg_fc < 3   ~ "Staying dry",
+    avg_fc > 6   ~ "Staying wet",
+    TRUE         ~ "About the same"
+  )
+} else {
+  "Forecast unavailable"
+}
+
+generate_og_card(
+  park_name        = park$name,
+  location         = park$location,
+  mud_level        = mud_now,
+  mud_name         = mud_name,
+  temp_c           = today_row$temp_max,
+  precip_7d_mm     = precip_7d,
+  depth_cm         = depth_cm,
+  forecast_summary = forecast_summary,
+  output_path      = "og-card.png"
+)
 ```
 
 ::: {.callout-note appearance="minimal"}
@@ -64,7 +107,7 @@ cat('<div class="tp-face">')
 cat(as.character(make_mudface(mud_now, size = "180px", label = FALSE, temp_c = today_row$temp_max)))
 cat('</div>')
 cat('<div class="tp-hero-text">')
-cat(glue('<h2 style="margin-top:0">{coalesce(mud_name, "Unknown")}</h2>'))
+cat(glue('<h2 style="margin-top:0">{.trail_rank(mud_level = mud_now)$label}</h2>'))
 cat(glue('<p style="font-size:1.1rem">{oneliner}</p>'))
 
 # Quick stats row
@@ -102,6 +145,7 @@ cat('</div>')  # hero
 ### Current Conditions & Forecast
 
 ```{r current-conditions}
+#| fig.height: 11
 plot_current_conditions(weather_mud, stream)
 ```
 
@@ -159,6 +203,13 @@ if (!is.na(pct_rank)) {
 plot_historical_conditions(weather_mud, stream)
 ```
 
+#### Vegetation — NDVI (HLS Landsat + Sentinel-2)
+
+```{r ndvi-annual}
+#| fig.height: 4
+if (!is.null(ndvi_data)) plot_ndvi_annual(ndvi_data)
+```
+
 ## ❄️ Snow & Winter
 
 ```{r snow-hero}
@@ -171,7 +222,7 @@ cat('<div class="tp-face">')
 cat(as.character(make_snowface(depth_cm, size = "180px", label = FALSE)))
 cat('</div>')
 cat('<div class="tp-hero-text">')
-cat(glue('<h2 style="margin-top:0">{snow_level_name(depth_cm)}</h2>'))
+cat(glue('<h2 style="margin-top:0">{.trail_rank(depth_cm = depth_cm)$label}</h2>'))
 cat(glue('<p style="font-size:1.1rem">{snow_one}</p>'))
 
 # Quick stats row

@@ -25,6 +25,40 @@ GitHub Actions rebuilds the site every morning at 4 AM Eastern so the report is 
 
 Drop a new entry in `data/parks.yml`, create a `parks/<park-id>/index.qmd` (copy Hunters Creek as a template), tune the mud model calibration for the local soils, and you're in.
 
+## NASA Earthdata credentials (NDVI)
+
+The NDVI panel fetches HLS Landsat + Sentinel-2 data via the [NASA AppEEARS API](https://appeears.earthdatacloud.nasa.gov), which requires a free [NASA Earthdata account](https://urs.earthdata.nasa.gov/users/new).
+
+### Local development
+
+Add credentials to your `.Renviron` (run `usethis::edit_r_environ()` or edit `~/.Renviron` directly):
+
+```
+EARTHDATA_USER=your_username
+EARTHDATA_PASSWORD=your_password
+```
+
+Restart R after saving. The first render submits an async task to AppEEARS; the NDVI chart appears on the next render once the task completes (~5–20 min).
+
+### GitHub Actions
+
+Add the same two values as repository secrets (**Settings → Secrets and variables → Actions → New repository secret**):
+
+| Secret name | Value |
+|---|---|
+| `EARTHDATA_USER` | your Earthdata username |
+| `EARTHDATA_PASSWORD` | your Earthdata password |
+
+Then expose them as environment variables in the workflow file:
+
+```yaml
+env:
+  EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
+  EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+```
+
+If the credentials are missing or invalid, the NDVI panel is silently skipped — all other panels render normally.
+
 ## Stack
 
 R · Quarto · dygraphs · httr2 · renv · GitHub Actions
