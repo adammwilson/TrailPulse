@@ -10,5 +10,6 @@ styles*
 widgets
 
 **/*.quarto_ipynb
+**/*.knit.md
 _freeze/*
 site_libs
