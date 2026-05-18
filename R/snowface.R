@@ -1,28 +1,30 @@
 # R/snowface.R
 # Returns an htmltools <img> tag for the appropriate snowface PNG icon.
 # Icons live in img/snowface/snowface01.png – snowface04.png.
-# 4-level ranking: Great (≥25cm) · Good (≥10cm) · Poor (≥5cm) · Awful (<5cm)
+# Icon selection is based on the unified condition_score [1–10]:
+#   ≤4 (Avoid/Poor) → icon 4 · ≤6 (Fair) → icon 3 · ≤8 (Good) → icon 2 · >8 (Great) → icon 1
 #
-# Depends on: htmltools
+# Depends on: htmltools, condition.R
 
-make_snowface <- function(snow_depth_cm, size = "160px", label = TRUE) {
-  depth <- coalesce(as.numeric(snow_depth_cm), 0)
-  n     <- if      (depth >= 25) 1L
-            else if (depth >= 10) 2L
-            else if (depth >=  5) 3L
-            else                  4L
+make_snowface <- function(condition_score, size = "160px", label = TRUE) {
+  cs    <- coalesce(as.numeric(condition_score), 1.0)
+  n     <- if      (cs > 8) 1L
+            else if (cs > 6) 2L
+            else if (cs > 4) 3L
+            else             4L
 
   src <- sprintf("../../img/snowface/snowface%02d.png", n)
   img <- htmltools::tags$img(
     src   = src,
-    alt   = c("Great", "Good", "Poor", "Awful")[n],
+    alt   = c("Great", "Good", "Fair", "Poor/Avoid")[n],
     style = sprintf("width:%s;height:%s;object-fit:contain;", size, size)
   )
 
   if (label) {
+    lbl_text <- score_to_label(cs)
     lbl <- htmltools::tags$div(
       style = "text-align:center;margin-top:0.25rem;",
-      htmltools::tags$span(class = "tp-level-badge", c("Great", "Good", "Poor", "Awful")[n])
+      htmltools::tags$span(class = "tp-level-badge", lbl_text)
     )
     htmltools::tagList(img, lbl)
   } else {

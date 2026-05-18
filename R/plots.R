@@ -37,9 +37,10 @@
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 1.  Current conditions + forecast — stacked ggplot2 panels (patchwork)
-#     Data: past 14 days + FORECAST_DAYS. Climatological quantile ribbons
-#     (10th–90th %ile by DOY from historical years) shown behind obs.
+# 1.  Current conditions + forecast — 3 compact shared-axis panels (patchwork)
+#     (a) Temperature + Humidity  (b) Soil Moisture 0-9cm + Precip
+#     (c) Streamflow daily discharge (optional)
+#     X-axis labels on bottom panel only. No spaghetti — ribbons only.
 # ────────────────────────────────────────────────────────────────────────────
 plot_current_conditions <- function(weather_mud_df, stream_df = NULL) {
   today        <- Sys.Date()
@@ -50,213 +51,212 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL) {
   wx      <- weather_mud_df |> filter(date >= window_start, date <= window_end)
   hist_wx <- weather_mud_df |> filter(source == "history", year(date) < today_year)
 
-  win_dates <- tibble(
-    date = seq(window_start, window_end, by = "day"),
-    doy  = yday(seq(window_start, window_end, by = "day"))
-  )
+  all_dates <- seq(window_start, window_end, by = "day")
+  win_dates <- tibble(date = all_dates, doy = yday(all_dates))
 
   .map_clim <- function(doy_df) {
     win_dates |> left_join(doy_df, by = "doy") |> arrange(date)
   }
 
-  # Smooth DOY quantiles with a ±15-day rolling mean (pools ~800 obs vs ~25 per DOY)
-  .sm <- function(x) zoo::rollapply(x, width = 31L, FUN = mean, na.rm = TRUE,
-                                    fill = NA, partial = TRUE, align = "center")
+  # 31-day rolling mean smooths climatological DOY quantiles
+  .rollm <- function(x) zoo::rollapply(x, width = 31L, FUN = mean, na.rm = TRUE,
+                                       fill = NA, partial = TRUE, align = "center")
 
-  # ── Shared layer objects ──────────────────────────────────────────────────
-  fc_shade   <- annotate("rect",
-                         xmin = today, xmax = window_end + 1L,
-                         ymin = -Inf, ymax = Inf, fill = "#f0f0f0", alpha = 0.6)
-  today_line <- geom_vline(xintercept = today,
-                           color = "#888888", linewidth = 0.4, linetype = "dashed")
-  x_sc <- scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
-                       minor_breaks = "1 day", expand = expansion(add = 0.5))
-  base_th <- theme(axis.title.x = element_blank(),
-                   panel.grid.minor.x = element_blank())
+  # ── Shared annotation layers ──────────────────────────────────────────────
+  fc_shade <- annotate("rect",
+                       xmin = today, xmax = window_end + 1L,
+                       ymin = -Inf, ymax = Inf, fill = "#f0f0f0", alpha = 0.55)
+  today_vl <- geom_vline(xintercept = today,
+                         color = "#888888", linewidth = 0.4, linetype = "dashed")
 
-  # ── Temperature ───────────────────────────────────────────────────────────
+  # Day-name x-axis: "Today" for today, abbreviated weekday names for others
+  day_lbl  <- function(d) { lbl <- weekdays(d, abbreviate = TRUE); lbl[d == today] <- "Today"; lbl }
+  breaks_x <- sort(unique(c(today, all_dates[seq(1, length(all_dates), by = 2)])))
+  x_sc <- scale_x_date(labels = day_lbl, breaks = breaks_x,
+                       minor_breaks = all_dates, expand = expansion(add = 0.5))
+
+  # Theme for upper panels: hide x-axis (y-axis title colors set per-panel)
+  th_upper <- theme(
+    axis.title.x       = element_blank(),
+    axis.text.x        = element_blank(),
+    axis.ticks.x       = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.y        = element_text(size = 10),
+    plot.margin        = margin(2, 6, 0, 2)
+  )
+  # Bottom panel gets x-axis labels
+  th_bottom <- th_upper + theme(
+    axis.text.x  = element_text(size = 10, angle = 30, hjust = 1),
+    axis.ticks.x = element_line(),
+    plot.margin  = margin(0, 6, 2, 2)
+  )
+
+  # ── (a) Temperature (left °C) + Humidity (right %) ───────────────────────
   temp_clim <- hist_wx |>
     filter(!is.na(temp_max), !is.na(temp_min)) |>
     mutate(doy = yday(date), temp_mean = (temp_min + temp_max) / 2) |>
     group_by(doy) |>
     summarise(clim_lo  = quantile(temp_min,  0.10, na.rm = TRUE),
               clim_mid = quantile(temp_mean, 0.50, na.rm = TRUE),
-              clim_hi  = quantile(temp_max,  0.90, na.rm = TRUE),
-              .groups = "drop") |>    arrange(doy) |>
-    mutate(clim_lo = .sm(clim_lo), clim_mid = .sm(clim_mid), clim_hi = .sm(clim_hi)) |> .map_clim()
+              clim_hi  = quantile(temp_max,  0.90, na.rm = TRUE), .groups = "drop") |>
+    arrange(doy) |> mutate(across(starts_with("clim"), .rollm)) |> .map_clim()
 
-  temp_spag <- hist_wx |>
-    filter(!is.na(temp_min), !is.na(temp_max)) |>
-    mutate(doy = yday(date), yr = year(date),
-           temp_mean = (temp_min + temp_max) / 2) |>
-    select(doy, yr, temp_mean) |>
-    inner_join(win_dates, by = "doy")
-
-  temp_obs <- wx |>
-    filter(!is.na(temp_max) | !is.na(temp_min)) |>
-    mutate(temp_mean = (coalesce(temp_min, temp_max) + coalesce(temp_max, temp_min)) / 2)
-
-  p_temp <- ggplot() +
-    fc_shade + today_line +
-    geom_line(data = temp_spag, aes(x = date, y = temp_mean, group = yr),
-              color = "#e07030", alpha =  0.05, linewidth = 0.25) +
-    geom_ribbon(data = temp_obs, aes(x = date, ymin = temp_min, ymax = temp_max),
-                fill = "#e07030", alpha = 0.20) +
-    geom_line(data = temp_obs, aes(x = date, y = temp_mean),
-              color = "#e07030", linewidth = 1.2) +
-    geom_ribbon(data = temp_clim, aes(x = date, ymin = clim_lo, ymax = clim_hi),
-                fill = "#bbbbbb", alpha =  0.40) +
-    geom_line(data = temp_clim, aes(x = date, y = clim_mid),
-              color = "#888888", linewidth = 0.6, linetype = "dotted") +
-    x_sc + base_th +
-    labs(y = "\u00b0C", title = "Temperature")
-
-  # ── Precipitation ─────────────────────────────────────────────────────────
-  precip_clim <- hist_wx |>
-    filter(!is.na(precip)) |>
-    mutate(doy = yday(date)) |>
-    group_by(doy) |>
-    summarise(clim_p90 = quantile(precip, 0.90, na.rm = TRUE), .groups = "drop") |>    arrange(doy) |>
-    mutate(clim_p90 = .sm(clim_p90)) |> .map_clim()
-
-  precip_spag <- hist_wx |>
-    filter(!is.na(precip)) |>
-    mutate(doy = yday(date), yr = year(date)) |>
-    select(doy, yr, precip) |>
-    inner_join(win_dates, by = "doy")
-
-  precip_obs <- wx |> filter(!is.na(precip))
-
-  p_precip <- ggplot() +
-    fc_shade + today_line +
-    geom_line(data = precip_spag, aes(x = date, y = precip, group = yr),
-              color = "#1565C0", alpha =  0.05, linewidth = 0.25) +
-    geom_col(data = precip_obs, aes(x = date, y = precip),
-             fill = "#1565C0", alpha = 0.75, width = 0.8) +
-    geom_line(data = precip_clim, aes(x = date, y = clim_p90),
-              color = "#aaaaaa", linewidth = 0.8, linetype = "dashed") +
-    x_sc + base_th +
-    labs(y = "mm", title = "Precipitation")
-
-  # ── Humidity ──────────────────────────────────────────────────────────────
   humid_clim <- hist_wx |>
     filter(!is.na(humidity_max), !is.na(humidity_min)) |>
     mutate(doy = yday(date), hum_mean = (humidity_min + humidity_max) / 2) |>
     group_by(doy) |>
     summarise(clim_lo  = quantile(humidity_min, 0.10, na.rm = TRUE),
               clim_mid = quantile(hum_mean,     0.50, na.rm = TRUE),
-              clim_hi  = quantile(humidity_max, 0.90, na.rm = TRUE),
-              .groups = "drop") |>    arrange(doy) |>
-    mutate(clim_lo = .sm(clim_lo), clim_mid = .sm(clim_mid), clim_hi = .sm(clim_hi)) |> .map_clim()
+              clim_hi  = quantile(humidity_max, 0.90, na.rm = TRUE), .groups = "drop") |>
+    arrange(doy) |> mutate(across(starts_with("clim"), .rollm)) |> .map_clim()
 
-  humid_spag <- hist_wx |>
-    filter(!is.na(humidity_min), !is.na(humidity_max)) |>
-    mutate(doy = yday(date), yr = year(date),
-           hum_mean = (humidity_min + humidity_max) / 2) |>
-    select(doy, yr, hum_mean) |>
-    inner_join(win_dates, by = "doy")
+  temp_obs <- wx |>
+    filter(!is.na(temp_max) | !is.na(temp_min)) |>
+    mutate(temp_mean = (coalesce(temp_min, temp_max) + coalesce(temp_max, temp_min)) / 2)
 
   humid_obs <- wx |>
     filter(!is.na(humidity_max) | !is.na(humidity_min)) |>
-    mutate(humidity_mean = (coalesce(humidity_min, humidity_max) +
-                            coalesce(humidity_max, humidity_min)) / 2)
+    mutate(hum_mean = (coalesce(humidity_min, humidity_max) +
+                       coalesce(humidity_max, humidity_min)) / 2)
 
-  p_humid <- ggplot() +
-    fc_shade + today_line +
-    geom_line(data = humid_spag, aes(x = date, y = hum_mean, group = yr),
-              color = "#0077aa", alpha =  0.05, linewidth = 0.25) +
+  # Convert temp to °F for display
+  c2f       <- function(c) c * 9/5 + 32
+  temp_clim <- temp_clim |> mutate(across(c(clim_lo, clim_mid, clim_hi), c2f))
+  temp_obs  <- temp_obs  |> mutate(temp_min  = c2f(temp_min),
+                                    temp_max  = c2f(temp_max),
+                                    temp_mean = c2f(temp_mean))
+
+  # Map humidity 0-100% onto the °F temperature axis range
+  t_lo <- floor(min(temp_clim$clim_lo,  temp_obs$temp_min, na.rm = TRUE)) - 3
+  t_hi <- ceiling(max(temp_clim$clim_hi, temp_obs$temp_max, na.rm = TRUE)) + 3
+  if (!is.finite(t_lo)) t_lo <- 14   # ~-10°C
+  if (!is.finite(t_hi)) t_hi <- 95   # ~35°C
+  h2f <- function(h) t_lo + h * (t_hi - t_lo) / 100
+  f2h <- function(f) (f - t_lo) * 100 / (t_hi - t_lo)
+
+  p_temp <- ggplot() +
+    fc_shade + today_vl +
+    geom_ribbon(data = temp_clim,  aes(date, ymin = clim_lo,  ymax = clim_hi),
+                fill = "#e07030", alpha = 0.20) +
+    geom_ribbon(data = humid_clim, aes(date, ymin = h2f(clim_lo), ymax = h2f(clim_hi)),
+                fill = "#0077aa", alpha = 0.18) +
+    geom_ribbon(data = temp_obs,   aes(date, ymin = temp_min,  ymax = temp_max),
+                fill = "#e07030", alpha = 0.30) +
+    geom_line(data   = temp_obs,   aes(date, temp_mean),
+              color = "#c04010", linewidth = 1.2) +
     geom_ribbon(data = humid_obs,
-                aes(x = date, ymin = humidity_min, ymax = humidity_max),
-                fill = "#0077aa", alpha = 0.20) +
-    geom_line(data = humid_obs, aes(x = date, y = humidity_mean),
-              color = "#0077aa", linewidth = 1.2) +
-    geom_ribbon(data = humid_clim, aes(x = date, ymin = clim_lo, ymax = clim_hi),
-                fill = "#5b9fc7", alpha =  0.40) +
-    geom_line(data = humid_clim, aes(x = date, y = clim_mid),
-              color = "#4a8fb7", linewidth = 0.6, linetype = "dotted") +
-    x_sc + base_th +
-    scale_y_continuous(limits = c(0, 100), labels = \(x) paste0(x, "%")) +
-    labs(y = "%", title = "Humidity")
+                aes(date, ymin = h2f(humidity_min), ymax = h2f(humidity_max)),
+                fill = "#0077aa", alpha = 0.25) +
+    geom_line(data   = humid_obs,  aes(date, h2f(hum_mean)),
+              color = "#005588", linewidth = 0.9) +
+    scale_y_continuous(
+      name     = "Temperature (\u00b0F)",
+      limits   = c(t_lo, t_hi),
+      sec.axis = sec_axis(f2h, name = "Humidity (%)",
+                          labels = function(x) paste0(round(x), "%"))
+    ) +
+    x_sc + th_upper +
+    theme(axis.title.y.left  = element_text(size = 10, face = "bold", color = "#c04010",
+                                             margin = margin(r = 4)),
+          axis.title.y.right = element_text(size = 10, face = "bold", color = "#005588"))
 
-  # ── Mud Score ─────────────────────────────────────────────────────────────
-  mud_clim <- hist_wx |>
-    filter(!is.na(mud_level)) |>
+  # ── (b) Soil Moisture 0-9 cm (left) + Precipitation bars (right) ─────────
+  .sm9 <- function(df) df |>
+    mutate(sm9 = 0.50 * coalesce(soil_moisture_0_1, NA_real_) +
+                 0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
+                 0.15 * coalesce(soil_moisture_3_9, soil_moisture_0_1))
+
+  sm_obs  <- .sm9(wx)      |> filter(!is.na(sm9))
+  sm_hist <- .sm9(hist_wx) |> filter(!is.na(sm9))
+
+  sm_clim <- sm_hist |>
     mutate(doy = yday(date)) |>
     group_by(doy) |>
-    summarise(clim_lo  = quantile(mud_level, 0.10, na.rm = TRUE),
-              clim_mid = quantile(mud_level, 0.50, na.rm = TRUE),
-              clim_hi  = quantile(mud_level, 0.90, na.rm = TRUE),
-              .groups = "drop") |>    arrange(doy) |>
-    mutate(clim_lo = .sm(clim_lo), clim_mid = .sm(clim_mid), clim_hi = .sm(clim_hi)) |> .map_clim()
+    summarise(clim_lo  = quantile(sm9, 0.10, na.rm = TRUE),
+              clim_mid = quantile(sm9, 0.50, na.rm = TRUE),
+              clim_hi  = quantile(sm9, 0.90, na.rm = TRUE), .groups = "drop") |>
+    arrange(doy) |> mutate(across(starts_with("clim"), .rollm)) |> .map_clim()
 
-  mud_spag <- hist_wx |>
-    filter(!is.na(mud_level)) |>
-    mutate(doy = yday(date), yr = year(date)) |>
-    select(doy, yr, mud_level) |>
-    inner_join(win_dates, by = "doy")
+  precip_obs <- wx |> filter(!is.na(precip))
 
-  mud_obs <- wx |> filter(!is.na(mud_level))
+  sm_top   <- max(sm_clim$clim_hi, sm_obs$sm9, na.rm = TRUE) * 1.15
+  sm_top   <- if (is.finite(sm_top) && sm_top > 0) sm_top else 0.5
+  prec_top <- max(precip_obs$precip, na.rm = TRUE)
+  prec_top <- if (is.finite(prec_top) && prec_top > 0) prec_top else 20
+  p2sm <- function(p) p * sm_top / prec_top
+  sm2p <- function(s) s * prec_top / sm_top
 
-  p_mud <- ggplot() +
-    fc_shade + today_line +
-    geom_line(data = mud_spag, aes(x = date, y = mud_level, group = yr),
-              color = "#6B3B18", alpha =  0.05, linewidth = 0.25) +
-    geom_line(data = mud_obs, aes(x = date, y = mud_level),
-              color = "#6B3B18", linewidth = 1.4) +
-    geom_ribbon(data = mud_clim, aes(x = date, ymin = clim_lo, ymax = clim_hi),
-                fill = "#c8a47a", alpha =  0.40) +
-    geom_line(data = mud_clim, aes(x = date, y = clim_mid),
-              color = "#b08860", linewidth = 0.6, linetype = "dotted") +
-    x_sc + base_th +
-    scale_y_continuous(limits = c(0, 10.5), breaks = c(0, 2, 4, 6, 8, 10)) +
-    labs(y = "Score (0\u201310)", title = "Mud Score")
+  p_sm <- ggplot() +
+    fc_shade + today_vl +
+    geom_ribbon(data = sm_clim,    aes(date, ymin = clim_lo, ymax = clim_hi),
+                fill = "#c8a47a", alpha = 0.45) +
+    geom_line(data   = sm_clim,    aes(date, clim_mid),
+              color = "#b08860", linewidth = 0.5, linetype = "dotted") +
+    geom_col(data    = precip_obs, aes(date, p2sm(precip)),
+             fill = "#1565C0", alpha = 0.60, width = 0.85) +
+    geom_line(data   = sm_obs,     aes(date, sm9),
+              color = "#6B3B18", linewidth = 1.3) +
+    scale_y_continuous(
+      name     = "Soil moisture (m\u00b3/m\u00b3)",
+      limits   = c(0, sm_top),
+      sec.axis = sec_axis(sm2p, name = "Precip (mm)")
+    ) +
+    x_sc + th_upper +
+    theme(axis.title.y.left  = element_text(size = 10, face = "bold", color = "#6B3B18",
+                                             margin = margin(r = 4)),
+          axis.title.y.right = element_text(size = 10, face = "bold", color = "#1565C0"))
 
-  panels <- list(p_temp, p_precip, p_humid, p_mud)
+  panels <- list(p_temp, p_sm)
 
-  # ── Streamflow (optional) ─────────────────────────────────────────────────
+  # ── (c) Streamflow — daily discharge (optional) ───────────────────────────
   if (!is.null(stream_df) && nrow(stream_df) > 0) {
-    sf_clim_doy <- stream_df |>
-      filter(year(date) < today_year, !is.na(roll7_cfs)) |>
+    sf_hist <- stream_df |>
+      filter(year(date) < today_year, !is.na(discharge_cfs), discharge_cfs > 0)
+
+    sf_clim <- sf_hist |>
       mutate(doy = yday(date)) |>
       group_by(doy) |>
-      summarise(clim_lo  = quantile(roll7_cfs, 0.10, na.rm = TRUE),
-                clim_mid = quantile(roll7_cfs, 0.50, na.rm = TRUE),
-                clim_hi  = quantile(roll7_cfs, 0.90, na.rm = TRUE),
-                .groups = "drop") |>
-      arrange(doy) |>
-      mutate(clim_lo = .sm(clim_lo), clim_mid = .sm(clim_mid), clim_hi = .sm(clim_hi)) |>
-      .map_clim()
+      summarise(clim_lo  = quantile(discharge_cfs, 0.10, na.rm = TRUE),
+                clim_mid = quantile(discharge_cfs, 0.50, na.rm = TRUE),
+                clim_hi  = quantile(discharge_cfs, 0.90, na.rm = TRUE), .groups = "drop") |>
+      arrange(doy) |> mutate(across(starts_with("clim"), .rollm)) |> .map_clim()
 
     sf_win <- stream_df |>
-      filter(date >= window_start, date <= window_end)
+      filter(date >= window_start, date <= window_end,
+             !is.na(discharge_cfs), discharge_cfs > 0)
 
-    sf_spag <- stream_df |>
-      filter(year(date) < today_year, !is.na(roll7_cfs), roll7_cfs > 0) |>
-      mutate(doy = yday(date), yr = year(date)) |>
-      select(doy, yr, roll7_cfs) |>
-      inner_join(win_dates, by = "doy")
-
-    p_stream <- ggplot() +
-      fc_shade + today_line +
-      geom_line(data = sf_spag, aes(x = date, y = roll7_cfs, group = yr),
-                color = "#1565C0", alpha =  0.05, linewidth = 0.25) +
-      geom_line(data = sf_win |> filter(!is.na(roll7_cfs), roll7_cfs > 0),
-                aes(x = date, y = roll7_cfs),
+    p_sf <- ggplot() +
+      fc_shade + today_vl +
+      geom_ribbon(data = sf_clim |> filter(!is.na(clim_lo), clim_lo > 0),
+                  aes(date, ymin = clim_lo, ymax = clim_hi),
+                  fill = "#90c4e4", alpha = 0.40) +
+      geom_line(data = sf_clim |> filter(!is.na(clim_mid)),
+                aes(date, clim_mid),
+                color = "#70b4d4", linewidth = 0.5, linetype = "dotted") +
+      geom_line(data = sf_win, aes(date, discharge_cfs),
                 color = "#1565C0", linewidth = 1.2) +
-      geom_ribbon(data = sf_clim_doy |> filter(!is.na(clim_lo), clim_lo > 0),
-                  aes(x = date, ymin = clim_lo, ymax = clim_hi),
-                  fill = "#90c4e4", alpha =  0.40) +
-      geom_line(data = sf_clim_doy |> filter(!is.na(clim_mid)),
-                aes(x = date, y = clim_mid),
-                color = "#70b4d4", linewidth = 0.6, linetype = "dotted") +
-      x_sc + base_th +
-      scale_y_log10(labels = scales::label_comma()) +
-      labs(y = "cfs (log)", title = "Streamflow (7-day median)")
+      x_sc + th_upper +
+      scale_y_log10(name = "Streamflow (cfs)", labels = scales::label_comma()) +
+      theme(axis.title.y.left = element_text(size = 10, face = "bold", color = "#1565C0",
+                                              margin = margin(r = 4)))
 
-    panels <- c(panels, list(p_stream))
+    panels <- c(panels, list(p_sf))
   }
 
-  wrap_plots(panels, ncol = 1) & theme(plot.margin = margin(4, 8, 4, 8))
+  # Apply x-axis labels only to the bottom panel
+  n           <- length(panels)
+  panels[[n]] <- panels[[n]] + th_bottom
+
+  # Equalize gtable column widths so left/right axis areas align perfectly
+  grobs <- lapply(panels, ggplotGrob)
+  max_w <- do.call(grid::unit.pmax, lapply(grobs, function(g) g$widths))
+  for (i in seq_along(grobs)) grobs[[i]]$widths <- max_w
+  gtable::gtable_matrix(
+    "conditions",
+    matrix(grobs, ncol = 1),
+    widths  = grid::unit(1, "null"),
+    heights = grid::unit(rep(1, length(grobs)), "null")
+  )
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -405,22 +405,24 @@ plot_soil_moisture_history <- function(weather_df) {
 # ────────────────────────────────────────────────────────────────────────────
 plot_temperature_history <- function(weather_df) {
   today_year <- year(Sys.Date())
+  c2f <- function(c) c * 9/5 + 32
 
   tmp <- weather_df |>
     filter(!is.na(temp_max), source == "history" | date <= Sys.Date()) |>
-    mutate(cal_year = year(date),
-           doy      = yday(date),
-           plot_date = as.Date(paste0("2000-", doy), format = "%Y-%j"))
+    mutate(cal_year   = year(date),
+           doy        = yday(date),
+           plot_date  = as.Date(paste0("2000-", doy), format = "%Y-%j"),
+           temp_max_f = c2f(temp_max))
 
   hist_quants <- tmp |>
     filter(cal_year < today_year) |>
     group_by(doy, plot_date) |>
     summarise(
-      p05 = quantile(temp_max, 0.05, na.rm = TRUE),
-      p25 = quantile(temp_max, 0.25, na.rm = TRUE),
-      p50 = quantile(temp_max, 0.50, na.rm = TRUE),
-      p75 = quantile(temp_max, 0.75, na.rm = TRUE),
-      p95 = quantile(temp_max, 0.95, na.rm = TRUE),
+      p05 = quantile(temp_max_f, 0.05, na.rm = TRUE),
+      p25 = quantile(temp_max_f, 0.25, na.rm = TRUE),
+      p50 = quantile(temp_max_f, 0.50, na.rm = TRUE),
+      p75 = quantile(temp_max_f, 0.75, na.rm = TRUE),
+      p95 = quantile(temp_max_f, 0.95, na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -432,12 +434,12 @@ plot_temperature_history <- function(weather_df) {
     geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#e07030", alpha = 0.35) +
     geom_line(aes(y = p50), color = "#c04010", linewidth = 0.8) +
     geom_line(data = hist_lines,
-              aes(y = temp_max, group = cal_year),
+              aes(y = temp_max_f, group = cal_year),
               color = "#f4b97a", linewidth = 0.3, alpha = 0.6) +
-    geom_line(data = cur_line, aes(y = temp_max),
+    geom_line(data = cur_line, aes(y = temp_max_f),
               color = "#c04010", linewidth = 1.8) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-    labs(x = NULL, y = "Daily High (\u00b0C)",
+    labs(x = NULL, y = "Daily High (\u00b0F)",
          title = "Daily High Temperature \u2014 All Years",
          subtitle = glue("Bold = {today_year}. Bands = 25\u201375th & 5\u201395th percentile. Line = median.")) +
     theme_trailpulse() +
@@ -462,15 +464,17 @@ plot_historical_conditions <- function(weather_df, stream_df) {
 # 7. Streamflow — all water years spaghetti + quantile ribbons (ggplot2)
 # ────────────────────────────────────────────────────────────────────────────
 plot_streamflow <- function(stream_df) {
-  today_wy <- if (month(Sys.Date()) >= 10) year(Sys.Date()) else year(Sys.Date()) - 1L
+  today_cy <- year(Sys.Date())
 
   sf <- stream_df |>
     filter(!is.na(roll7_cfs)) |>
-    mutate(plot_date = as.Date("2000-10-01") + dowy - 1L)
+    mutate(cal_year  = year(date),
+           doy       = yday(date),
+           plot_date = as.Date(paste0("2000-", doy), format = "%Y-%j"))
 
   hist_quants <- sf |>
-    filter(water_year < today_wy) |>
-    group_by(dowy, plot_date) |>
+    filter(cal_year < today_cy) |>
+    group_by(doy, plot_date) |>
     summarise(
       p05 = quantile(roll7_cfs, 0.05, na.rm = TRUE),
       p25 = quantile(roll7_cfs, 0.25, na.rm = TRUE),
@@ -480,23 +484,23 @@ plot_streamflow <- function(stream_df) {
       .groups = "drop"
     )
 
-  hist_lines <- sf |> filter(water_year < today_wy)
-  cur_line   <- sf |> filter(water_year == today_wy)
+  hist_lines <- sf |> filter(cal_year < today_cy)
+  cur_line   <- sf |> filter(cal_year == today_cy)
 
   ggplot(hist_quants, aes(x = plot_date)) +
     geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#90c4e4", alpha = 0.25) +
     geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#5b9fc7", alpha = 0.35) +
     geom_line(aes(y = p50), color = "#1565C0", linewidth = 0.8) +
     geom_line(data = hist_lines,
-              aes(y = roll7_cfs, group = water_year),
+              aes(y = roll7_cfs, group = cal_year),
               color = "#90c4e4", linewidth = 0.3, alpha = 0.6) +
     geom_line(data = cur_line, aes(y = roll7_cfs),
               color = "#1565C0", linewidth = 1.8) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
     scale_y_log10(labels = scales::comma) +
     labs(x = NULL, y = "Discharge (cfs, log scale)",
-         title = "Streamflow \u2014 All Water Years",
-         subtitle = glue("Bold = water year {today_wy}. Bands = 25\u201375th & 5\u201395th percentile. Line = median.")) +
+         title = "Streamflow \u2014 All Calendar Years",
+         subtitle = glue("Bold = {today_cy}. Bands = 25\u201375th & 5\u201395th percentile. Line = median.")) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8))
 }
@@ -638,15 +642,15 @@ mud_forecast_strip <- function(weather_mud_df) {
 
   if (nrow(forecast_rows) == 0) return(htmltools::HTML(""))
 
-  day_divs <- purrr::pmap(forecast_rows, function(date, mud_level, mud_level_name, temp_max, ...) {
-    face_svg <- make_mudface(mud_level, size = "70px", label = FALSE, temp_c = temp_max)
+  day_divs <- purrr::pmap(forecast_rows, function(date, condition_score, condition_label, temp_max, ...) {
+    face_svg <- make_mudface(condition_score, size = "70px", label = FALSE, temp_c = temp_max)
     htmltools::tags$div(
       class = "tp-forecast-day",
       htmltools::tags$span(class = "day-label", format(date, "%a")),
       face_svg,
       htmltools::tags$span(
         class = "mud-label",
-        if (is.na(mud_level_name)) "?" else mud_level_name
+        if (is.na(condition_label)) "?" else condition_label
       )
     )
   })
@@ -665,15 +669,15 @@ snow_forecast_strip <- function(weather_df) {
 
   if (nrow(forecast_rows) == 0) return(htmltools::HTML(""))
 
-  day_divs <- purrr::pmap(forecast_rows, function(date, snow_depth, ...) {
-    face_svg <- make_snowface(coalesce(snow_depth, 0), size = "70px", label = FALSE)
+  day_divs <- purrr::pmap(forecast_rows, function(date, snow_condition_score, snow_condition_label, ...) {
+    face_svg <- make_snowface(snow_condition_score, size = "70px", label = FALSE)
     htmltools::tags$div(
       class = "tp-forecast-day",
       htmltools::tags$span(class = "day-label", format(date, "%a")),
       face_svg,
       htmltools::tags$span(
         class = "mud-label",
-        glue("{round(coalesce(snow_depth, 0))} cm")
+        if (is.na(snow_condition_label)) "?" else snow_condition_label
       )
     )
   })

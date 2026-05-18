@@ -2,7 +2,7 @@ parks:
   - id: hunters-creek
     name: Hunters Creek Park
     short_name: Hunters Creek
-    location: Elma, NY
+    location: Wales, NY
     lat: 42.750580
     lon: -78.539871
     timezone: America/New_York
@@ -16,7 +16,7 @@ parks:
       - nordic_skiing
       - snowshoeing
     description: >
-      1,000 acres of hardwood forest in Elma, NY with 18 miles of multi-use
+      1,000 acres of hardwood forest in Wales, NY with 18 miles of multi-use
       trails popular for hiking, mountain biking, and winter Nordic skiing.
     trail_data: data/hunters-creek/trails
     # Mud model calibration: clay soils — reactive, retains water, sharp wet/dry transition

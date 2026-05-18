@@ -1,7 +1,16 @@
 # R/snow_model.R
 # Snow season analysis: cumulative snowfall, comparisons to historical years.
-# Depends on: setup.R, parks_config.R
-
+# Depends on: setup.R, parks_config.R, condition.R
+# ── Add unified snow condition columns to a weather tibble ──────────────────
+# Appends snow_condition_score and snow_condition_label to every row.
+# Call on the output of compute_mud_level() before passing to plots/strips.
+compute_snow_condition <- function(df) {
+  df |>
+    mutate(
+      snow_condition_score = snow_to_condition_score(coalesce(snow_depth, 0)),
+      snow_condition_label = score_to_label(snow_condition_score)
+    )
+}
 # ── Snow season filter ───────────────────────────────────────────────────────
 # A "snow season" runs from Nov 1 of year Y to Apr 30 of year Y+1,
 # labelled by Y (e.g. snow_year 2024 = Nov 2024 – Apr 2025).
@@ -78,32 +87,18 @@ current_snow_summary <- function(weather_df) {
     NA_real_
   }
 
+  cond_score <- snow_to_condition_score(depth_today)
+
   list(
     snow_year        = current_year,
     depth_today_cm   = depth_today,
     cum_snowfall_cm  = cum_so_far,
     snow_pct_rank    = snow_pct_rank,
+    condition_score  = cond_score,
+    condition_label  = score_to_label(cond_score),
     current_season   = current_season,
     peak_df          = peak_df
   )
 }
 
-# ── Snow one-liner ────────────────────────────────────────────────────────────
-snow_oneliner <- function(depth_cm, pct_rank = NULL) {
-  lvl <- snow_level_name(depth_cm)
-
-  base <- switch(lvl,
-    "Bare"       = "No snow on the ground currently.",
-    "Dusting"    = glue("Just a light dusting ({round(depth_cm)} cm) \u2014 not yet skiable."),
-    "Skiable"    = glue("{round(depth_cm)} cm on the ground \u2014 skiable on groomed trails."),
-    "Good"       = glue("{round(depth_cm)} cm of snow \u2014 good Nordic ski conditions."),
-    "Powder Day" = glue("{round(depth_cm)} cm of snow \u2014 powder day! Get out there!"),
-    "No snow data."
-  )
-
-  if (!is.null(pct_rank) && !is.na(pct_rank) && depth_cm > 0) {
-    base <- glue("{base} More snowfall than {pct_rank}% of seasons on record.")
-  }
-
-  base
-}
+# snow_oneliner() removed — use condition_oneliner(mode="snow", ...) from condition.R

@@ -21,12 +21,16 @@ all_parks <- yaml::read_yaml("data/parks.yml")[["parks"]]
 #| output: asis
 
 card_html <- purrr::map_chr(all_parks, function(p) {
-  park_url  <- paste0("parks/", p$id, "/index.html")
-  card_img  <- paste0("parks/", p$id, "/og-card.png")
+  park_url <- paste0("parks/", p$id, "/index.html")
+  card_img <- paste0("parks/", p$id, "/og-card.png")
 
   glue::glue(
-    '<a href="{park_url}" class="tp-park-card" style="display:block;text-decoration:none;color:inherit;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.15);">',
-    '  <img src="{card_img}" alt="{p$name} trail conditions card" style="width:100%;display:block;">',
+    '<a href="{park_url}" class="tp-park-card" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.15);">',
+    '<img src="{card_img}" alt="{p$name} trail conditions card" style="width:100%;display:block;">',
+    '<div style="padding:0.6rem 0.9rem 0.7rem;">',
+    '<div style="font-weight:600;font-size:1rem;">{p$name}</div>',
+    '<div style="font-size:0.85em;color:#666;">{p$location}</div>',
+    '</div>',
     '</a>',
     .sep = "\n"
   )

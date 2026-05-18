@@ -2,7 +2,7 @@
 
 Ever drive 45 minutes to the trailhead only to find the singletrack is a slip-n-slide or the Nordic loops are brown mush? Yeah, same. TrailPulse fixes that.
 
-It's a Quarto website that pulls live weather, streamflow, and forecast data and mashes it into a plain-language trail conditions report for each park. Right now it covers **Hunters Creek Park** (Elma, NY) — 18 miles of forested singletrack.
+It's a Quarto website that pulls live weather, streamflow, and forecast data and mashes it into a plain-language trail conditions report for each park. Right now it covers **Hunters Creek Park** (Wales, NY) — 18 miles of forested singletrack.
 
 ## What it shows
 

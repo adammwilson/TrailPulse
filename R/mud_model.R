@@ -2,7 +2,7 @@
 # Compute a 0-10 mud level from Open-Meteo soil moisture data.
 # Works on both historical and forecast rows in the weather tibble.
 #
-# Depends on: setup.R, parks_config.R
+# Depends on: setup.R, parks_config.R, condition.R
 
 # ── Core model ──────────────────────────────────────────────────────────────
 #
@@ -15,7 +15,9 @@
 #
 # Modifiers:
 #   +precip_boost if precip > 5 mm in last 24h (surface saturation)
-#   → "Frozen" flag if temp_max < 0 °C (frozen surface overrides mud)
+#   → "Frozen" flag when the 3-day rolling mean of shallow soil temp ≤ 0°C
+#     (soil_temp_0cm represents 0-7cm for history, ~6cm for forecast).
+#     Single cold air-temp spikes do NOT trigger frozen.
 
 compute_mud_level <- function(
     weather_df,
@@ -44,8 +46,14 @@ compute_mud_level <- function(
         TRUE ~ mud_raw
       ),
 
-      # Frozen surface flag: cold enough that surface is frozen
-      frozen = !is.na(temp_max) & temp_max < 0,
+      # Frozen flag: 3-day rolling mean of shallow soil temp ≤ 0°C.
+      # Falls back to single-day soil temp for the first rows where rolling
+      # mean is NA (start of record / short time series).
+      roll3_soil_temp = zoo::rollmean(soil_temp_0cm, k = 3L,
+                                      fill = NA, align = "right"),
+      frozen = coalesce(roll3_soil_temp <= 0,
+                        !is.na(soil_temp_0cm) & soil_temp_0cm <= 0,
+                        FALSE),
 
       # Final mud level: NA if frozen (show "Frozen" state instead)
       mud_level = if_else(frozen, NA_real_, mud_score),
@@ -75,7 +83,15 @@ compute_mud_level <- function(
         mud_level < 7.75 ~ "mud-5",
         mud_level < 9    ~ "mud-6",
         TRUE             ~ "mud-7"
-      )
+      ),
+
+      # ── Unified condition columns (condition.R) ────────────────────────
+      condition_score     = mud_to_condition_score(mud_score, frozen),
+      condition_label     = score_to_label(condition_score),
+      # Frozen ground is walkable (Fair) even though score is 5.0 < 6
+      go_recommendation   = if_else(frozen,
+                                    TRUE,
+                                    go_recommendation(condition_score, "mud"))
     )
 }
 
@@ -86,27 +102,4 @@ today_mud <- function(weather_mud_df) {
     slice(1)
 }
 
-# ── One-liner summary text ───────────────────────────────────────────────────
-mud_oneliner <- function(row, activities = c("hiking", "mountain_biking")) {
-  lvl  <- row$mud_level_name
-  if (is.na(lvl)) return("Condition data unavailable.")
-
-  base <- switch(lvl,
-    "Frozen"     = "Surface is frozen \u2014 watch for ice on shaded sections.",
-    "Bone Dry"   = "Trails are bone dry. Perfect conditions.",
-    "Dusty"      = "Trails are dusty but firm \u2014 great day to ride or hike.",
-    "Firm"       = "Trails are firm with good traction \u2014 ideal conditions.",
-    "Tacky"      = "Trails are tacky \u2014 expect excellent grip, light mud on low sections.",
-    "Soft"       = "Trails are softening \u2014 low areas may have mud.",
-    "Muddy"      = "Trails are muddy \u2014 consider staying on hard-packed surfaces.",
-    "Very Muddy" = "Trails are very muddy \u2014 bikes will cause damage. Hike if you must.",
-    "Impassable" = "Trails are impassable \u2014 please stay home to protect trail surfaces.",
-    "No data."
-  )
-
-  if ("mountain_biking" %in% activities && lvl %in% c("Muddy", "Very Muddy", "Impassable")) {
-    base <- paste(base, "\U1F6B5 Mountain biking is strongly discouraged.")
-  }
-
-  base
-}
+# mud_oneliner() removed — use condition_oneliner(mode="mud", ...) from condition.R

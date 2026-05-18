@@ -171,7 +171,7 @@ fetch_weather <- function(
           "soil_moisture_0_to_1cm",
           "soil_moisture_1_to_3cm",
           "soil_moisture_3_to_9cm",
-          "soil_temperature_0cm",
+          "soil_temperature_6cm",
           "snow_depth"
         ), collapse = ",")
       ) |>
@@ -204,7 +204,7 @@ fetch_weather <- function(
         soil_moisture_0_1  = mean(soil_moisture_0_to_1cm, na.rm = TRUE),
         soil_moisture_1_3  = mean(soil_moisture_1_to_3cm, na.rm = TRUE),
         soil_moisture_3_9  = mean(soil_moisture_3_to_9cm, na.rm = TRUE),
-        soil_temp_0cm      = mean(soil_temperature_0cm,   na.rm = TRUE),
+        soil_temp_0cm      = mean(soil_temperature_6cm,   na.rm = TRUE),
         snow_depth         = mean(snow_depth, na.rm = TRUE) * 100,
         .groups = "drop"
       )
