@@ -1,6 +1,6 @@
 ---
 title: "Sprague Brook Park"
-subtitle: "Sardinia, NY — Trail Conditions Report"
+subtitle: "Glenwood, NY — Trail Conditions Report"
 image: og-card.png
 execute:
   echo: false
@@ -129,7 +129,7 @@ if (frozen_now) {
 
 # Numeric score and bar
 score_display <- if (!is.na(mud_score_now)) round(mud_score_now, 1) else "?"
-bar_pct       <- if (!is.na(mud_score_now)) round(mud_score_now / 10 * 100) else 0
+bar_pct       <- if (!is.na(mud_score_now)) round((mud_score_now - 1) / 9 * 100) else 0
 rank_col      <- condition_color(mud_label)
 
 # Quick stats
@@ -157,7 +157,7 @@ cat(glue(
   '<div class="tp-score-bar-bg">',
   '<div class="tp-score-bar-fill" style="width:{bar_pct}%;background:{rank_col}"></div>',
   '</div>',
-  '<div class="tp-score-endpoints"><span>0 — Impassable</span><span>10 — Perfect</span></div>'
+  '<div class="tp-score-endpoints"><span>1 — Avoid</span><span>10 — Great</span></div>'
 ))
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
@@ -295,7 +295,7 @@ if (snow_go) {
 
 # Score and bar
 snow_score_display <- if (!is.na(snow_score_now)) round(snow_score_now, 1) else "?"
-snow_bar_pct       <- if (!is.na(snow_score_now)) round(snow_score_now / 10 * 100) else 0
+snow_bar_pct       <- if (!is.na(snow_score_now)) round((snow_score_now - 1) / 9 * 100) else 0
 snow_rank_col      <- condition_color(snow_label)
 
 # Season stats
@@ -320,7 +320,7 @@ cat(glue(
   '<div class="tp-score-bar-bg">',
   '<div class="tp-score-bar-fill" style="width:{snow_bar_pct}%;background:{snow_rank_col}"></div>',
   '</div>',
-  '<div class="tp-score-endpoints"><span>0 — No Snow</span><span>10 — Powder</span></div>'
+  '<div class="tp-score-endpoints"><span>1 — Avoid</span><span>10 — Great</span></div>'
 ))
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
