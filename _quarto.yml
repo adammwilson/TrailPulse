@@ -24,6 +24,8 @@ website:
         menu:
           - href: parks/hunters-creek/index.qmd
             text: "Hunters Creek Park"
+          - href: parks/sprague-brook/index.qmd
+            text: "Sprague Brook Park"
     right:
       - icon: github
         href: https://github.com/adammwilson/TrailPulse

@@ -1,0 +1,416 @@
+---
+title: "Sprague Brook Park"
+subtitle: "Sardinia, NY — Trail Conditions Report"
+image: og-card.png
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+# ── Identify this park and load shared infrastructure ──────────────────────
+park_id <- "sprague-brook"
+source("../../R/setup.R")
+source("../../R/parks_config.R")
+source("../../R/fetch_weather.R")
+source("../../R/fetch_streamflow.R")
+source("../../R/fetch_nws.R")
+source("../../R/mud_model.R")
+source("../../R/snow_model.R")
+source("../../R/plots.R")
+source("../../R/mudface.R")
+source("../../R/snowface.R")
+source("../../R/fetch_ndvi.R")
+source("../../R/og_card.R")
+source("../../R/condition.R")
+```
+
+```{r fetch-data}
+# ── Fetch all data ─────────────────────────────────────────────────────────
+weather_raw  <- fetch_weather()
+weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
+stream       <- fetch_streamflow()
+nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
+  message("NWS fetch failed: ", e$message); .nws_empty()
+})
+snow_summary <- current_snow_summary(weather_mud)
+ndvi_data   <- tryCatch(fetch_ndvi(), error = function(e) {
+  warning("NDVI fetch failed: ", e$message); NULL
+})
+
+# Today's conditions
+today_row     <- today_mud(weather_mud)
+mud_now       <- today_row$mud_level          # raw mud score (0-10), used for forecast delta
+mud_score_now <- today_row$condition_score    # unified condition score (1-10)
+mud_label     <- today_row$condition_label    # "Avoid" / "Poor" / "Fair" / "Good" / "Great"
+mud_go        <- isTRUE(today_row$go_recommendation)
+mud_name      <- today_row$mud_level_name
+depth_cm      <- coalesce(today_row$snow_depth, 0)
+snow_score_now <- coalesce(snow_summary$condition_score, 1.0)
+snow_label     <- coalesce(snow_summary$condition_label, "Avoid")
+
+# Decide default tab: snow if winter months or snow on ground
+is_winter  <- month(Sys.Date()) >= 11 | month(Sys.Date()) <= 4
+show_snow  <- is_winter | depth_cm > 2
+
+last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
+
+# Generate OG/social-media card image with today's conditions
+precip_7d <- weather_mud |>
+  filter(date >= Sys.Date() - 7, date <= Sys.Date(), source == "history") |>
+  summarise(total = sum(precip, na.rm = TRUE)) |>
+  pull(total)
+
+# 3-day mud forecast summary
+fc_rows <- weather_mud |>
+  filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
+forecast_summary <- if (nrow(fc_rows) >= 1 && !all(is.na(fc_rows$mud_level))) {
+  avg_fc <- mean(fc_rows$mud_level, na.rm = TRUE)
+  delta  <- avg_fc - coalesce(mud_now, avg_fc)
+  dplyr::case_when(
+    delta < -1.5 ~ "Getting much drier",
+    delta < -0.5 ~ "Getting drier",
+    delta >  1.5 ~ "Getting much muddier",
+    delta >  0.5 ~ "Getting muddier",
+    avg_fc < 3   ~ "Staying dry",
+    avg_fc > 6   ~ "Staying wet",
+    TRUE         ~ "About the same"
+  )
+} else {
+  "Forecast unavailable"
+}
+
+generate_og_card(
+  park_name            = park$name,
+  location             = park$location,
+  mud_condition_score  = mud_score_now,
+  snow_condition_score = snow_summary$condition_score,
+  go                   = mud_go,
+  temp_f               = round(today_row$temp_max * 9/5 + 32),
+  precip_7d_mm         = precip_7d,
+  forecast_summary     = forecast_summary,
+  output_path          = "og-card.png"
+)
+```
+
+::: {.callout-note appearance="minimal"}
+Last updated: `r last_updated`. Data from [Open-Meteo](https://open-meteo.com), [USGS](https://waterdata.usgs.gov), and [NWS](https://www.weather.gov).
+:::
+
+::: {.panel-tabset}
+
+## 🥾 Trail Conditions
+
+```{r mud-hero}
+#| output: asis
+
+oneliner <- condition_oneliner(
+  mode           = "mud",
+  score          = mud_score_now,
+  label          = mud_label,
+  go_recommendation = mud_go,
+  activities     = park$activities,
+  frozen         = isTRUE(today_row$frozen)
+)
+
+# Go/No-Go banner
+frozen_now  <- isTRUE(today_row$frozen)
+if (frozen_now) {
+  gonogo_class <- "tp-caution"
+  go_text      <- "\u26a0\ufe0f Caution \u2014 Surface frozen, watch for ice"
+} else if (mud_go) {
+  gonogo_class <- "tp-go"
+  go_text      <- "\u2705 Go \u2014 Trail conditions are acceptable"
+} else {
+  gonogo_class <- "tp-nogo"
+  go_text      <- "\u274c No-Go \u2014 Please stay home to protect the trails"
+}
+
+# Numeric score and bar
+score_display <- if (!is.na(mud_score_now)) round(mud_score_now, 1) else "?"
+bar_pct       <- if (!is.na(mud_score_now)) round(mud_score_now / 10 * 100) else 0
+rank_col      <- condition_color(mud_label)
+
+# Quick stats
+precip_7d <- weather_mud |>
+  filter(date >= Sys.Date() - 7, date <= Sys.Date()) |>
+  summarise(total = sum(precip, na.rm = TRUE)) |>
+  pull(total) |>
+  round(1)
+temp_today <- coalesce(today_row$temp_max, NA_real_)
+
+# Render card
+cat('<div class="tp-condition-card">')
+
+# ── Main row: face + score ──
+cat('<div class="tp-condition-main">')
+cat(as.character(make_mudface(mud_score_now, size = "160px", label = FALSE, temp_c = today_row$temp_max)))
+cat('<div class="tp-score-col">')
+cat(glue(
+  '<div class="tp-score-header">',
+  '<span class="tp-score-num" style="color:{rank_col}">{score_display}</span>',
+  '<span class="tp-label-pill" style="background:{rank_col}">{mud_label}</span>',
+  '</div>'
+))
+cat(glue(
+  '<div class="tp-score-bar-bg">',
+  '<div class="tp-score-bar-fill" style="width:{bar_pct}%;background:{rank_col}"></div>',
+  '</div>',
+  '<div class="tp-score-endpoints"><span>0 — Impassable</span><span>10 — Perfect</span></div>'
+))
+cat('</div>')  # score-col
+cat('</div>')  # condition-main
+
+# ── Go/No-Go banner ──
+cat(glue('<div class="tp-gonogo {gonogo_class}">{go_text}</div>'))
+
+# ── One-liner description ──
+cat(glue('<p style="margin:0">{oneliner}</p>'))
+
+# ── Context row: forecast trend ──
+if (exists("forecast_summary") && nchar(forecast_summary) > 0) {
+  cat(glue('<div class="tp-context-row">\U0001F4C8 7-day forecast: {forecast_summary}</div>'))
+}
+
+# ── Stat boxes ──
+cat('<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">')
+if (!is.na(temp_today)) {
+  temp_f_today <- round(temp_today * 9 / 5 + 32)
+  cat(glue('<div class="tp-stat-box">',
+           '<div class="stat-value">{temp_f_today}\u00b0F ({round(temp_today)}\u00b0C)</div>',
+           '<div class="stat-label">Today\'s High</div>',
+           '</div>'))
+}
+cat(glue('<div class="tp-stat-box">',
+         '<div class="stat-value">{precip_7d} mm / {round(precip_7d / 25.4, 1)} in</div>',
+         '<div class="stat-label">Precip Last 7 Days</div>',
+         '</div>'))
+cat('</div>')  # stat boxes
+
+cat('</div>')  # condition-card
+```
+
+### Current Conditions & Forecast
+
+```{r current-conditions}
+#| fig.height: 7
+#| results: hide
+g <- plot_current_conditions(weather_mud, stream)
+grid::grid.newpage()
+grid::grid.draw(g)
+```
+
+```{r gauge-note}
+#| output: asis
+if (!is.null(stream) && nrow(stream) > 0)
+  cat(glue('<p style="font-size:0.8em;color:#666;margin-top:-0.25rem;">',
+           'Streamflow: USGS gauge {PARK_USGS} \u2014 {park$usgs_gauge_name}.',
+           '</p>'))
+cat('<p style="font-size:0.8em;color:#888;margin-top:0.2rem;">',
+    '<em>Solid line: observed value; dark ribbon: daily min\u2013max (temp) or 25\u2013',
+    '75th percentile (soil/streamflow); light ribbon: 10th\u201390th percentile. ',
+    'Dotted line: historical median. Gray shading = forecast period.</em>',
+    '</p>')
+```
+
+```{r nws-forecast}
+if (nrow(nws) > 0)
+  htmltools::tags$details(
+    htmltools::tags$summary(htmltools::strong("NWS 7-Day Forecast")),
+    htmltools::div(style = "margin-top:0.75rem;", nws_forecast_strip(nws))
+  )
+```
+
+---
+
+### Compared to Previous Years
+
+```{r precip-percentile}
+#| output: asis
+
+# Cumulative precip so far this calendar year vs. historical
+doy_now <- yday(Sys.Date())
+ytd_now <- weather_mud |>
+  filter(year(date) == year(Sys.Date()), date <= Sys.Date(), source == "history") |>
+  summarise(total = sum(precip, na.rm = TRUE)) |>
+  pull(total)
+
+hist_ytd <- weather_mud |>
+  filter(year(date) < year(Sys.Date()), source == "history") |>
+  mutate(doy = yday(date)) |>
+  filter(doy <= doy_now) |>
+  group_by(yr = year(date)) |>
+  summarise(total = sum(precip, na.rm = TRUE), .groups = "drop")
+
+pct_rank <- if (nrow(hist_ytd) > 0)
+  round(100 * mean(hist_ytd$total < ytd_now)) else NA_real_
+
+if (!is.na(pct_rank)) {
+  direction <- if (pct_rank >= 50) "wetter" else "drier"
+  cat(glue('<div class="tp-percentile" style="margin-bottom:1rem;">',
+           'Year-to-date precipitation is <strong>{direction} than {pct_rank}%</strong> ',
+           'of years since {year(WEATHER_START)}.',
+           '</div>'))
+}
+```
+
+#### Historical Conditions — All Years
+
+```{r historical-conditions}
+#| fig.height: 18
+plot_historical_conditions(weather_mud, stream)
+```
+
+#### Vegetation — NDVI (HLS Landsat + Sentinel-2)
+
+```{r ndvi-annual}
+#| fig.height: 4
+if (!is.null(ndvi_data)) plot_ndvi_annual(ndvi_data)
+```
+
+## ❄️ Snow & Winter
+
+```{r snow-hero}
+#| output: asis
+
+snow_one <- condition_oneliner(
+  mode           = "snow",
+  score          = snow_score_now,
+  label          = snow_label,
+  go_recommendation = go_recommendation(snow_score_now, "snow", "xc_ski"),
+  depth_cm       = depth_cm,
+  pct_rank       = snow_summary$snow_pct_rank
+)
+
+# Go/No-Go
+snow_go <- go_recommendation(snow_score_now, "snow", "xc_ski")
+if (snow_go) {
+  snow_gonogo_class <- "tp-go"
+  snow_go_text      <- "\u2705 Go \u2014 Conditions are good for Nordic skiing"
+} else {
+  snow_gonogo_class <- "tp-nogo"
+  snow_go_text      <- "\u274c No-Go \u2014 Insufficient snow for skiing"
+}
+
+# Score and bar
+snow_score_display <- if (!is.na(snow_score_now)) round(snow_score_now, 1) else "?"
+snow_bar_pct       <- if (!is.na(snow_score_now)) round(snow_score_now / 10 * 100) else 0
+snow_rank_col      <- condition_color(snow_label)
+
+# Season stats
+total_snow_this_season <- coalesce(snow_summary$cum_snowfall_cm, 0)
+snow_days_this_season  <- if (nrow(snow_summary$current_season) > 0)
+  sum(snow_summary$current_season$snowfall > 1, na.rm = TRUE) else 0
+
+# Render card
+cat('<div class="tp-condition-card">')
+
+# ── Main row: face + score ──
+cat('<div class="tp-condition-main">')
+cat(as.character(make_snowface(snow_score_now, size = "160px", label = FALSE)))
+cat('<div class="tp-score-col">')
+cat(glue(
+  '<div class="tp-score-header">',
+  '<span class="tp-score-num" style="color:{snow_rank_col}">{snow_score_display}</span>',
+  '<span class="tp-label-pill" style="background:{snow_rank_col}">{snow_label}</span>',
+  '</div>'
+))
+cat(glue(
+  '<div class="tp-score-bar-bg">',
+  '<div class="tp-score-bar-fill" style="width:{snow_bar_pct}%;background:{snow_rank_col}"></div>',
+  '</div>',
+  '<div class="tp-score-endpoints"><span>0 — No Snow</span><span>10 — Powder</span></div>'
+))
+cat('</div>')  # score-col
+cat('</div>')  # condition-main
+
+# ── Go/No-Go banner ──
+cat(glue('<div class="tp-gonogo {snow_gonogo_class}">{snow_go_text}</div>'))
+
+# ── One-liner description ──
+cat(glue('<p style="margin:0">{snow_one}</p>'))
+
+# ── Stat boxes ──
+cat('<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">')
+cat(glue('<div class="tp-stat-box">',
+         '<div class="stat-value">{round(depth_cm)} cm / {round(depth_cm * 0.394, 1)} in</div>',
+         '<div class="stat-label">Snow Depth Now</div>',
+         '</div>'))
+cat(glue('<div class="tp-stat-box">',
+         '<div class="stat-value">{round(total_snow_this_season)} cm / {round(total_snow_this_season * 0.394, 1)} in</div>',
+         '<div class="stat-label">Season Total</div>',
+         '</div>'))
+cat(glue('<div class="tp-stat-box">',
+         '<div class="stat-value">{snow_days_this_season}</div>',
+         '<div class="stat-label">Snow Days</div>',
+         '</div>'))
+cat('</div>')  # stat boxes
+
+cat('</div>')  # condition-card
+```
+
+### 14-Day Window + 7-Day Forecast
+
+```{r snow-forecast-chart}
+plot_snow_forecast(weather_mud)
+```
+
+```{r snow-forecast-strip}
+#| output: asis
+cat("<p><strong>Forecast snow conditions:</strong></p>")
+snow_forecast_strip(weather_mud)
+```
+
+```{r nws-snow-forecast}
+if (nrow(nws) > 0)
+  htmltools::tags$details(
+    htmltools::tags$summary(htmltools::strong("NWS 7-Day Forecast")),
+    htmltools::div(style = "margin-top:0.75rem;", nws_forecast_strip(nws))
+  )
+```
+
+---
+
+### Compared to Previous Winters
+
+```{r snow-percentile}
+#| output: asis
+pct <- snow_summary$snow_pct_rank
+if (!is.na(pct)) {
+  direction <- if (pct >= 50) "snowier" else "less snowy"
+  cat(glue('<div class="tp-percentile" style="margin-bottom:1rem;">',
+           'This season has been <strong>{direction} than {pct}%</strong> ',
+           'of winters since {year(WEATHER_START)}.',
+           '</div>'))
+}
+```
+
+#### Cumulative Snowfall — All Seasons
+
+```{r snowfall-spaghetti}
+plot_cumulative_snowfall(weather_mud)
+```
+
+#### Peak Snow Depth by Winter
+
+```{r snow-depth-history}
+plot_snow_depth_history(weather_mud)
+```
+
+:::
+
+---
+
+::: {.callout-tip collapse="true"}
+### About the Mud Model
+
+Trail muddiness is estimated using a weighted average of soil moisture in the top 9 cm
+(ERA5-Land reanalysis for history, Open-Meteo forecast model for future days).
+A logistic sigmoid maps soil wetness (0–0.6 m³/m³) to a 0–10 mud score.
+An additional boost is applied when precipitation exceeds 5 mm in the prior 24 hours.
+When surface temperature is below 0°C the trail surface is flagged as **Frozen**.
+
+The model has not been calibrated against field observations at this location —
+treat mud scores as estimates, especially near the boundaries between named levels.
+:::

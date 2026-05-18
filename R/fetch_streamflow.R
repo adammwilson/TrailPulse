@@ -9,6 +9,18 @@ fetch_streamflow <- function(
     start = WEATHER_START,
     tz    = PARK_TZ
 ) {
+  if (is.null(gauge) || is.na(gauge) || !nzchar(as.character(gauge))) {
+    message("No USGS gauge configured for this park — skipping streamflow.")
+    return(tibble(
+      date = as.Date(character()),
+      discharge_cfs = numeric(),
+      discharge_cms = numeric(),
+      roll7_cfs = numeric(),
+      water_year = integer(),
+      dowy = integer()
+    ))
+  }
+
   message("Fetching USGS streamflow for gauge ", gauge, "...")
 
   raw <- dataRetrieval::readNWISdv(

@@ -30,3 +30,33 @@ parks:
       start_day: 1
       end_month: 4
       end_day: 30
+
+  - id: sprague-brook
+    name: Sprague Brook Park
+    short_name: Sprague Brook
+    location: Sardinia, NY
+    lat: 42.5340
+    lon: -78.5300
+    timezone: America/New_York
+    usgs_gauge: ~                     # no daily-value gauge on Sprague Brook
+    usgs_gauge_name: ~
+    weather_history_start: "2000-01-01"
+    activities:
+      - hiking
+      - mountain_biking
+      - trail_running
+      - nordic_skiing
+      - snowshoeing
+    description: >
+      1,200 acres of mixed hardwood forest in Sardinia, NY with over 20 miles
+      of multi-use trails popular for hiking, mountain biking, and winter skiing.
+    # Mud model calibration: clay soils similar to Hunters Creek
+    mud_calibration:
+      midpoint: 0.28
+      steepness: 15
+      precip_boost: 1.5
+    snow_season:
+      start_month: 11
+      start_day: 1
+      end_month: 4
+      end_day: 30
