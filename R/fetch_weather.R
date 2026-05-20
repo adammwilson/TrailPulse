@@ -68,14 +68,21 @@ fetch_weather <- function(
     message(sprintf("Using cached historical data (%.0f h old).", hist_age))
     hist <- readRDS(hist_file)
   } else {
-    message("Fetching historical weather (", start, " to ", hist_end, ")...")
+    # If cache exists, only fetch dates newer than the last cached date
+    hist_cached <- if (file.exists(hist_file)) readRDS(hist_file) else NULL
+    fetch_start <- if (!is.null(hist_cached) && nrow(hist_cached) > 0)
+      max(hist_cached$date) - 10L   # overlap 10 days to catch late-arriving data
+    else
+      start
+
+    message("Fetching historical weather (", fetch_start, " to ", hist_end, ")...")
 
     hist <- tryCatch({
       hist_resp <- httr2::request("https://archive-api.open-meteo.com/v1/archive") |>
         httr2::req_url_query(
           latitude   = lat,
           longitude  = lon,
-          start_date = format(start),
+          start_date = format(fetch_start),
           end_date   = format(hist_end),
           timezone   = tz,
           daily      = paste(c(
@@ -129,6 +136,14 @@ fetch_weather <- function(
       result <- hist_daily |>
         left_join(hist_soil, by = "date") |>
         mutate(source = "history")
+
+      # Merge with existing cache (new rows override old for overlapping dates)
+      if (!is.null(hist_cached) && nrow(hist_cached) > 0) {
+        result <- bind_rows(
+          filter(hist_cached, date < min(result$date)),
+          result
+        )
+      }
 
       saveRDS(result, hist_file)
       result
