@@ -92,10 +92,11 @@ fetch_weather <- function(
           ), collapse = ",")
         ) |>
         .maybe_key() |>
+        httr2::req_timeout(30) |>
         httr2::req_retry(
-          max_tries    = 5,
+          max_tries    = 3,
           is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
-          backoff      = \(i) 30 * 2^(i - 1L)
+          backoff      = \(i) 10 * 2^(i - 1L)
         ) |>
         httr2::req_perform()
 
@@ -154,6 +155,7 @@ fetch_weather <- function(
   } else {
     message("Fetching recent + ", forecast_days, "-day forecast from Open-Meteo...")
 
+    fc <- tryCatch({
     fc_resp <- httr2::request("https://api.open-meteo.com/v1/forecast") |>
       httr2::req_url_query(
         latitude      = lat,
@@ -176,10 +178,11 @@ fetch_weather <- function(
         ), collapse = ",")
       ) |>
       .maybe_key() |>
+      httr2::req_timeout(30) |>
       httr2::req_retry(
-        max_tries    = 5,
+        max_tries    = 3,
         is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
-        backoff      = \(i) 30 * 2^(i - 1L)
+        backoff      = \(i) 10 * 2^(i - 1L)
       ) |>
       httr2::req_perform()
 
@@ -209,11 +212,25 @@ fetch_weather <- function(
         .groups = "drop"
       )
 
-    fc <- fc_daily |>
+    result_fc <- fc_daily |>
       left_join(fc_soil, by = "date") |>
       mutate(source = if_else(date > today, "forecast", "history"))
 
-    saveRDS(fc, fc_file)
+    saveRDS(result_fc, fc_file)
+    result_fc
+
+    }, error = function(e) {
+      # ── Stale-if-error: use existing cache even if past TTL ───────────────
+      if (file.exists(fc_file)) {
+        warning(sprintf(
+          "Forecast API failed (%s). Using stale cache (%.0f h old).",
+          conditionMessage(e), fc_age
+        ))
+        readRDS(fc_file)
+      } else {
+        stop(e)
+      }
+    })
   }
 
   # ── 3. Combine (forecast/recent takes precedence over old archive) ─────────
