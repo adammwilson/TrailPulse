@@ -31,71 +31,74 @@ source("../../R/condition.R")
 weather_raw  <- fetch_weather()
 if (is.null(weather_raw)) {
   cat("::: {.callout-warning}\n**Weather data unavailable.** Conditions cannot be estimated at this time. Please check back later.\n:::")
+  # knitr::knit_exit() only stops future chunks, not the current one.
+  # Use else to guard all downstream code within this chunk.
   knitr::knit_exit()
-}
-weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
-stream       <- fetch_streamflow()
-nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
-  message("NWS fetch failed: ", e$message); .nws_empty()
-})
-snow_summary <- current_snow_summary(weather_mud)
-ndvi_data   <- tryCatch(fetch_ndvi(), error = function(e) {
-  warning("NDVI fetch failed: ", e$message); NULL
-})
-
-# Today's conditions
-today_row     <- today_mud(weather_mud)
-mud_now       <- today_row$mud_level          # raw mud score (0-10), used for forecast delta
-mud_score_now <- today_row$condition_score    # unified condition score (1-10)
-mud_label     <- today_row$condition_label    # "Avoid" / "Poor" / "Fair" / "Good" / "Great"
-mud_go        <- isTRUE(today_row$go_recommendation)
-mud_name      <- today_row$mud_level_name
-depth_cm      <- coalesce(today_row$snow_depth, 0)
-snow_score_now <- coalesce(snow_summary$condition_score, 1.0)
-snow_label     <- coalesce(snow_summary$condition_label, "Avoid")
-
-# Decide default tab: snow if winter months or snow on ground
-is_winter  <- month(Sys.Date()) >= 11 | month(Sys.Date()) <= 4
-show_snow  <- is_winter | depth_cm > 2
-
-last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
-
-# Generate OG/social-media card image with today's conditions
-precip_7d <- weather_mud |>
-  filter(date >= Sys.Date() - 7, date <= Sys.Date(), source == "history") |>
-  summarise(total = sum(precip, na.rm = TRUE)) |>
-  pull(total)
-
-# 3-day mud forecast summary
-fc_rows <- weather_mud |>
-  filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
-forecast_summary <- if (nrow(fc_rows) >= 1 && !all(is.na(fc_rows$mud_level))) {
-  avg_fc <- mean(fc_rows$mud_level, na.rm = TRUE)
-  delta  <- avg_fc - coalesce(mud_now, avg_fc)
-  dplyr::case_when(
-    delta < -1.5 ~ "Getting much drier",
-    delta < -0.5 ~ "Getting drier",
-    delta >  1.5 ~ "Getting much muddier",
-    delta >  0.5 ~ "Getting muddier",
-    avg_fc < 3   ~ "Staying dry",
-    avg_fc > 6   ~ "Staying wet",
-    TRUE         ~ "About the same"
-  )
 } else {
-  "Forecast unavailable"
-}
+  weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
+  stream       <- fetch_streamflow()
+  nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
+    message("NWS fetch failed: ", e$message); .nws_empty()
+  })
+  snow_summary <- current_snow_summary(weather_mud)
+  ndvi_data   <- tryCatch(fetch_ndvi(), error = function(e) {
+    warning("NDVI fetch failed: ", e$message); NULL
+  })
 
-generate_og_card(
-  park_name            = park$name,
-  location             = park$location,
-  mud_condition_score  = mud_score_now,
-  snow_condition_score = snow_summary$condition_score,
-  go                   = mud_go,
-  temp_f               = round(today_row$temp_max * 9/5 + 32),
-  precip_7d_mm         = precip_7d,
-  forecast_summary     = forecast_summary,
-  output_path          = "og-card.png"
-)
+  # Today's conditions
+  today_row     <- today_mud(weather_mud)
+  mud_now       <- today_row$mud_level          # raw mud score (0-10), used for forecast delta
+  mud_score_now <- today_row$condition_score    # unified condition score (1-10)
+  mud_label     <- today_row$condition_label    # "Avoid" / "Poor" / "Fair" / "Good" / "Great"
+  mud_go        <- isTRUE(today_row$go_recommendation)
+  mud_name      <- today_row$mud_level_name
+  depth_cm      <- coalesce(today_row$snow_depth, 0)
+  snow_score_now <- coalesce(snow_summary$condition_score, 1.0)
+  snow_label     <- coalesce(snow_summary$condition_label, "Avoid")
+
+  # Decide default tab: snow if winter months or snow on ground
+  is_winter  <- month(Sys.Date()) >= 11 | month(Sys.Date()) <= 4
+  show_snow  <- is_winter | depth_cm > 2
+
+  last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
+
+  # Generate OG/social-media card image with today's conditions
+  precip_7d <- weather_mud |>
+    filter(date >= Sys.Date() - 7, date <= Sys.Date(), source == "history") |>
+    summarise(total = sum(precip, na.rm = TRUE)) |>
+    pull(total)
+
+  # 3-day mud forecast summary
+  fc_rows <- weather_mud |>
+    filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
+  forecast_summary <- if (nrow(fc_rows) >= 1 && !all(is.na(fc_rows$mud_level))) {
+    avg_fc <- mean(fc_rows$mud_level, na.rm = TRUE)
+    delta  <- avg_fc - coalesce(mud_now, avg_fc)
+    dplyr::case_when(
+      delta < -1.5 ~ "Getting much drier",
+      delta < -0.5 ~ "Getting drier",
+      delta >  1.5 ~ "Getting much muddier",
+      delta >  0.5 ~ "Getting muddier",
+      avg_fc < 3   ~ "Staying dry",
+      avg_fc > 6   ~ "Staying wet",
+      TRUE         ~ "About the same"
+    )
+  } else {
+    "Forecast unavailable"
+  }
+
+  generate_og_card(
+    park_name            = park$name,
+    location             = park$location,
+    mud_condition_score  = mud_score_now,
+    snow_condition_score = snow_summary$condition_score,
+    go                   = mud_go,
+    temp_f               = round(today_row$temp_max * 9/5 + 32),
+    precip_7d_mm         = precip_7d,
+    forecast_summary     = forecast_summary,
+    output_path          = "og-card.png"
+  )
+}
 ```
 
 ::: {.callout-note appearance="minimal"}

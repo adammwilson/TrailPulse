@@ -76,6 +76,7 @@ fetch_weather <- function(
       start
 
     message("Fetching historical weather (", fetch_start, " to ", hist_end, ")...")
+    Sys.sleep(1)  # brief pause to avoid rate limiting when multiple parks render in sequence
 
     hist <- tryCatch({
       hist_resp <- httr2::request("https://archive-api.open-meteo.com/v1/archive") |>
@@ -149,8 +150,8 @@ fetch_weather <- function(
       result
 
     }, error = function(e) {
-      # ── Stale-if-error: use cache only if ≤ 48 h old ─────────────────────
-      stale_max_h <- 48
+      # ── Stale-if-error: use cache only if ≤ 168 h (7 days) old ──────────
+      stale_max_h <- 168
       if (file.exists(hist_file) && hist_age <= stale_max_h) {
         warning(sprintf(
           "Archive API failed (%s). Using stale cache (%.0f h old).",
@@ -176,6 +177,7 @@ fetch_weather <- function(
     fc <- readRDS(fc_file)
   } else {
     message("Fetching recent + ", forecast_days, "-day forecast from Open-Meteo...")
+    Sys.sleep(1)  # brief pause to avoid rate limiting when multiple parks render in sequence
 
     fc <- tryCatch({
     fc_resp <- httr2::request("https://api.open-meteo.com/v1/forecast") |>
@@ -242,8 +244,8 @@ fetch_weather <- function(
     result_fc
 
     }, error = function(e) {
-      # ── Stale-if-error: use cache only if ≤ 48 h old ─────────────────────
-      stale_max_h <- 48
+      # ── Stale-if-error: use cache only if ≤ 168 h (7 days) old ──────────
+      stale_max_h <- 168
       if (file.exists(fc_file) && fc_age <= stale_max_h) {
         warning(sprintf(
           "Forecast API failed (%s). Using stale cache (%.0f h old).",
