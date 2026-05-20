@@ -32,7 +32,8 @@ weather_raw  <- fetch_weather()
 if (is.null(weather_raw)) {
   cat("::: {.callout-warning}\n**Weather data unavailable.** Conditions cannot be estimated at this time. Please check back later.\n:::")
   knitr::knit_exit()
-}weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
+}
+weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
 stream       <- fetch_streamflow()
 nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
   message("NWS fetch failed: ", e$message); .nws_empty()
