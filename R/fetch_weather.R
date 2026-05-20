@@ -149,18 +149,25 @@ fetch_weather <- function(
       result
 
     }, error = function(e) {
-      # ── Stale-if-error: use existing cache even if past TTL ───────────────
-      if (file.exists(hist_file)) {
+      # ── Stale-if-error: use cache only if ≤ 48 h old ─────────────────────
+      stale_max_h <- 48
+      if (file.exists(hist_file) && hist_age <= stale_max_h) {
         warning(sprintf(
           "Archive API failed (%s). Using stale cache (%.0f h old).",
           conditionMessage(e), hist_age
         ))
         readRDS(hist_file)
       } else {
-        stop(e)
+        warning(sprintf(
+          "Archive API failed (%s). Cache missing or too old (%.0f h). Returning NULL.",
+          conditionMessage(e), hist_age
+        ))
+        NULL
       }
     })
   }
+
+  if (is.null(hist)) return(NULL)
 
   # ── 2. FORECAST + RECENT — api.open-meteo.com (cached 1 h) ───────────────
   fc_age <- .cache_age_h(fc_file)
@@ -235,18 +242,25 @@ fetch_weather <- function(
     result_fc
 
     }, error = function(e) {
-      # ── Stale-if-error: use existing cache even if past TTL ───────────────
-      if (file.exists(fc_file)) {
+      # ── Stale-if-error: use cache only if ≤ 48 h old ─────────────────────
+      stale_max_h <- 48
+      if (file.exists(fc_file) && fc_age <= stale_max_h) {
         warning(sprintf(
           "Forecast API failed (%s). Using stale cache (%.0f h old).",
           conditionMessage(e), fc_age
         ))
         readRDS(fc_file)
       } else {
-        stop(e)
+        warning(sprintf(
+          "Forecast API failed (%s). Cache missing or too old (%.0f h). Returning NULL.",
+          conditionMessage(e), fc_age
+        ))
+        NULL
       }
     })
   }
+
+  if (is.null(fc)) return(NULL)
 
   # ── 3. Combine (forecast/recent takes precedence over old archive) ─────────
   weather <- bind_rows(hist, fc) |>
