@@ -21,18 +21,21 @@
 
 compute_mud_level <- function(
     weather_df,
-    midpoint     = MUD_MIDPOINT,
-    steepness    = MUD_STEEPNESS,
-    precip_boost = MUD_PRECIP_BOOST
+    midpoint            = MUD_MIDPOINT,
+    steepness           = MUD_STEEPNESS,
+    precip_boost        = MUD_PRECIP_BOOST,
+    soil_moisture_scale = MUD_SOIL_SCALE
 ) {
   weather_df |>
     mutate(
-      # Weighted soil wetness (0 - ~0.6 scale)
+      # Weighted soil wetness (0 - ~0.6 scale); site scale factor applied before sigmoid
       soil_wetness = case_when(
         !is.na(soil_moisture_0_1) ~
-          0.50 * soil_moisture_0_1 +
-          0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
-          0.15 * coalesce(soil_moisture_3_9, soil_moisture_0_1),
+          soil_moisture_scale * (
+            0.50 * soil_moisture_0_1 +
+            0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
+            0.15 * coalesce(soil_moisture_3_9, soil_moisture_0_1)
+          ),
         TRUE ~ NA_real_
       ),
 

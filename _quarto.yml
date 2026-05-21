@@ -39,5 +39,5 @@ format:
       light: cosmo
       dark: darkly
     toc: false
+    include-in-header: include/styles_head.html
     include-after-body: include/after_body.html
-    css: include/styles.css

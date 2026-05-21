@@ -30,9 +30,10 @@ PARK_LON         <- park$lon
 PARK_TZ          <- park$timezone
 PARK_USGS        <- park$usgs_gauge
 WEATHER_START    <- as.Date(park$weather_history_start)
-MUD_MIDPOINT     <- park$mud_calibration$midpoint  %||% 0.35
-MUD_STEEPNESS    <- park$mud_calibration$steepness %||% 12
-MUD_PRECIP_BOOST <- park$mud_calibration$precip_boost %||% 1.0
+MUD_MIDPOINT     <- park$mud_calibration$midpoint              %||% 0.35
+MUD_STEEPNESS    <- park$mud_calibration$steepness             %||% 12
+MUD_PRECIP_BOOST <- park$mud_calibration$precip_boost          %||% 1.0
+MUD_SOIL_SCALE   <- park$mud_calibration$soil_moisture_scale   %||% 1.0
 SNOW_START_MONTH <- park$snow_season$start_month %||% 11
 SNOW_END_MONTH   <- park$snow_season$end_month   %||% 4
 

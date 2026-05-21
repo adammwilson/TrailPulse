@@ -19,11 +19,12 @@ parks:
       1,000 acres of hardwood forest in Wales, NY with 18 miles of multi-use
       trails popular for hiking, mountain biking, and winter Nordic skiing.
     trail_data: data/hunters-creek/trails
-    # Mud model calibration: clay soils — reactive, retains water, sharp wet/dry transition
+    # Mud model calibration: heavy clay — reactive, retains water, slow to drain
     mud_calibration:
-      midpoint: 0.28    # clay becomes soft/muddy at lower soil-wetness fraction than loam
-      steepness: 15     # sharper transition — clay goes from rideable to unrideable quickly
-      precip_boost: 1.5 # clay surface saturates fast; added mud levels if >5mm in last 24h
+      midpoint: 0.24            # clay becomes sticky/impassable at lower soil wetness than loam
+      steepness: 18             # narrow firm-to-impassable window; clay has little "tacky" middle ground
+      precip_boost: 2.0         # clay holds surface water long after rain; stronger post-rain mud boost
+      soil_moisture_scale: 1  # inflates soil wetness to compensate for slow surface drying on clay
     # Snow season definition
     snow_season:
       start_month: 11
@@ -55,6 +56,7 @@ parks:
       midpoint: 0.28
       steepness: 15
       precip_boost: 1.5
+      soil_moisture_scale: 1.0  # multiplier on soil wetness before sigmoid (>1 = muddier for same moisture)
     snow_season:
       start_month: 11
       start_day: 1

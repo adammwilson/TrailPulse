@@ -9,3 +9,16 @@
   href="https://creativecommons.org/licenses/by-nc-nd/4.0/" ><img src="https://licensebuttons.net/l/by-nc-nd/4.0/88x31.png" alt="CC BY-NC-ND 4.0"/></a>
   </div>
 </footer>
+
+<script>
+(function () {
+  var banner = document.querySelector('.tp-update-banner');
+  if (!banner) return;
+  var renderedAt = parseInt(banner.getAttribute('data-rendered-at'), 10);
+  if (!renderedAt) return;
+  var ageHours = (Date.now() / 1000 - renderedAt) / 3600;
+  if (ageHours > 24) {
+    banner.classList.add('tp-stale');
+  }
+})();
+</script>

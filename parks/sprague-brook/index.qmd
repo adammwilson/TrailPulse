@@ -101,9 +101,17 @@ if (is.null(weather_raw)) {
 }
 ```
 
-::: {.callout-note appearance="minimal"}
-Last updated: `r last_updated`. Data from [Open-Meteo](https://open-meteo.com), [USGS](https://waterdata.usgs.gov), and [NWS](https://www.weather.gov).
-:::
+```{r update-banner}
+#| output: asis
+cat(glue(
+  '<div class="tp-update-banner" data-rendered-at="{floor(as.numeric(Sys.time()))}">',
+  'Last updated: {last_updated}. Data from ',
+  '<a href="https://open-meteo.com">Open-Meteo</a>, ',
+  '<a href="https://waterdata.usgs.gov">USGS</a>, and ',
+  '<a href="https://www.weather.gov">NWS</a>.',
+  '</div>'
+))
+```
 
 ::: {.panel-tabset}
 
@@ -412,12 +420,19 @@ plot_snow_depth_history(weather_mud)
 ::: {.callout-tip collapse="true"}
 ### About the Mud Model
 
-Trail muddiness is estimated using a weighted average of soil moisture in the top 9 cm
-(ERA5-Land reanalysis for history, Open-Meteo forecast model for future days).
-A logistic sigmoid maps soil wetness (0–0.6 m³/m³) to a 0–10 mud score.
-An additional boost is applied when precipitation exceeds 5 mm in the prior 24 hours.
-When surface temperature is below 0°C the trail surface is flagged as **Frozen**.
+Trail muddiness is estimated from a weighted composite of the top 9 cm of soil
+moisture (ERA5-Land reanalysis for history, Open-Meteo model for forecast days).
 
-The model has not been calibrated against field observations at this location —
-treat mud scores as estimates, especially near the boundaries between named levels.
+**Scoring:** A site-specific scale factor is applied to soil wetness, then a logistic
+sigmoid converts it to an internal 0–10 mud index (0 = bone dry, 10 = impassable).
+A precipitation boost applies when rainfall exceeds 5 mm in the prior 24 h.
+The displayed **1–10 trail condition score** inverts the mud index
+(score = 11 − mud index), so 10 = Great conditions and 1 = Avoid.
+
+**Frozen:** flagged when the 3-day rolling mean of shallow soil temperature (0–7 cm)
+drops to or below 0°C; single cold air-temperature spikes alone do not trigger it.
+
+Calibration parameters (`midpoint`, `steepness`, `precip_boost`, `soil_moisture_scale`)
+are set per park in `data/parks.yml`. The model has not been validated against field
+observations — treat scores as estimates, especially near level boundaries.
 :::

@@ -206,7 +206,7 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL) {
                                              margin = margin(r = 4)),
           axis.title.y.right = element_text(size = 10, face = "bold", color = "#1565C0"))
 
-  panels <- list(p_temp, p_sm)
+  panels <- list(p_sm, p_temp)
 
   # ── (c) Streamflow — daily discharge (optional) ───────────────────────────
   if (!is.null(stream_df) && nrow(stream_df) > 0) {
@@ -393,8 +393,8 @@ plot_soil_moisture_history <- function(weather_df) {
               color = "#6B3B18", linewidth = 1.8) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
     scale_y_continuous(limits = c(0, NA)) +
-    labs(x = NULL, y = "Soil Wetness (m\u00b3/m\u00b3)",
-         title = "Soil Wetness \u2014 Top 9 cm",
+    labs(x = NULL, y = "Soil Moisture (m\u00b3/m\u00b3)",
+         title = "Soil Moisture \u2014 Top 9 cm",
          subtitle = glue("Bold = {today_year}. Bands = 25\u201375th & 5\u201395th percentile. Line = median.")) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8))
@@ -451,12 +451,12 @@ plot_temperature_history <- function(weather_df) {
 #    (temperature / cumulative precip / soil wetness / streamflow)
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_conditions <- function(weather_df, stream_df) {
-  p_temp   <- plot_temperature_history(weather_df)
-  p_precip <- plot_cumulative_precip_ytd(weather_df)
   p_soil   <- plot_soil_moisture_history(weather_df)
+  p_precip <- plot_cumulative_precip_ytd(weather_df)
+  p_temp   <- plot_temperature_history(weather_df)
   p_stream <- plot_streamflow(stream_df)
 
-  (p_temp / p_precip / p_soil / p_stream) +
+  (p_soil / p_precip / p_temp / p_stream) +
     patchwork::plot_layout(heights = c(1, 1, 1, 1))
 }
 

@@ -150,8 +150,8 @@ fetch_weather <- function(
       result
 
     }, error = function(e) {
-      # ── Stale-if-error: use cache only if ≤ 168 h (7 days) old ──────────
-      stale_max_h <- 168
+      # ── Stale-if-error: use cache only if ≤ 720 h (30 days) old ─────────
+      stale_max_h <- 720
       if (file.exists(hist_file) && hist_age <= stale_max_h) {
         warning(sprintf(
           "Archive API failed (%s). Using stale cache (%.0f h old).",
@@ -244,8 +244,8 @@ fetch_weather <- function(
     result_fc
 
     }, error = function(e) {
-      # ── Stale-if-error: use cache only if ≤ 168 h (7 days) old ──────────
-      stale_max_h <- 168
+      # ── Stale-if-error: use cache only if ≤ 720 h (30 days) old ─────────
+      stale_max_h <- 720
       if (file.exists(fc_file) && fc_age <= stale_max_h) {
         warning(sprintf(
           "Forecast API failed (%s). Using stale cache (%.0f h old).",

@@ -47,6 +47,9 @@ jobs:
           restore-keys: |
             weather-cache-
 
+      - name: Pre-fetch weather data for all parks
+        run: Rscript scripts/prefetch_all_parks.R
+
       - name: Render and Publish
         uses: quarto-dev/quarto-actions/publish@v2
         with:
