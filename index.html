@@ -77,7 +77,6 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="include/styles.css">
 <meta property="og:title" content="TrailPulse — Local Trail Conditions – TrailPulse">
 <meta property="og:description" content="Live mud scores, snow conditions, and 7-day forecasts for local trails. Know before you go.">
 <meta property="og:image" content="https://adammwilson.github.io/TrailPulse/parks/hunters-creek/og-card.png">
@@ -379,6 +378,19 @@ Glenwood, NY
   <a rel="license" property="http://creativecommons.org/ns#license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img src="https://licensebuttons.net/l/by-nc-nd/4.0/88x31.png" alt="CC BY-NC-ND 4.0"></a>
   </div>
 </footer>
+
+<script>
+(function () {
+  var banner = document.querySelector('.tp-update-banner');
+  if (!banner) return;
+  var renderedAt = parseInt(banner.getAttribute('data-rendered-at'), 10);
+  if (!renderedAt) return;
+  var ageHours = (Date.now() / 1000 - renderedAt) / 3600;
+  if (ageHours > 24) {
+    banner.classList.add('tp-stale');
+  }
+})();
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right

@@ -77,7 +77,6 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="include/styles.css">
 <meta property="og:title" content="Sprague Brook Park – TrailPulse">
 <meta property="og:description" content="Glenwood, NY — Trail Conditions Report">
 <meta property="og:image" content="https://adammwilson.github.io/TrailPulse/parks/sprague-brook/og-card.png">
@@ -338,15 +337,8 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="callout callout-style-simple callout-note no-icon">
-<div class="callout-body d-flex">
-<div class="callout-icon-container">
-<i class="callout-icon no-icon"></i>
-</div>
-<div class="callout-body-container">
-<p>Last updated: May 21, 2026 at 05:07 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.</p>
-</div>
-</div>
+<div class="tp-update-banner" data-rendered-at="1779368950">
+Last updated: May 21, 2026 at 09:09 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
 </div>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">🥾 Trail Conditions</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">❄️ Snow &amp; Winter</a></li></ul>
@@ -420,14 +412,14 @@ Precip Last 7 Days
 <div style="margin-top:0.75rem;">
 <div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
 <div class="nws-forecast-card">
-<div class="nws-period-name">Thursday</div>
+<div class="nws-period-name">Today</div>
 <img src="https://api.weather.gov/icons/land/day/bkn?size=medium" width="48px" height="48px" alt="Partly Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 59°F
 <br>
 15°C
 </div>
-<div class="nws-wind">7 mph</div>
+<div class="nws-wind">5 mph</div>
 <div class="nws-desc">Partly Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -637,14 +629,14 @@ Snow Days
 <div style="margin-top:0.75rem;">
 <div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
 <div class="nws-forecast-card">
-<div class="nws-period-name">Thursday</div>
+<div class="nws-period-name">Today</div>
 <img src="https://api.weather.gov/icons/land/day/bkn?size=medium" width="48px" height="48px" alt="Partly Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 59°F
 <br>
 15°C
 </div>
-<div class="nws-wind">7 mph</div>
+<div class="nws-wind">5 mph</div>
 <div class="nws-desc">Partly Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -772,8 +764,10 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
 </div>
 <div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>Trail muddiness is estimated using a weighted average of soil moisture in the top 9 cm (ERA5-Land reanalysis for history, Open-Meteo forecast model for future days). A logistic sigmoid maps soil wetness (0–0.6 m³/m³) to a 0–10 mud score. An additional boost is applied when precipitation exceeds 5 mm in the prior 24 hours. When surface temperature is below 0°C the trail surface is flagged as <strong>Frozen</strong>.</p>
-<p>The model has not been calibrated against field observations at this location — treat mud scores as estimates, especially near the boundaries between named levels.</p>
+<p>Trail muddiness is estimated from a weighted composite of the top 9 cm of soil moisture (ERA5-Land reanalysis for history, Open-Meteo model for forecast days).</p>
+<p><strong>Scoring:</strong> A site-specific scale factor is applied to soil wetness, then a logistic sigmoid converts it to an internal 0–10 mud index (0 = bone dry, 10 = impassable). A precipitation boost applies when rainfall exceeds 5 mm in the prior 24 h. The displayed <strong>1–10 trail condition score</strong> inverts the mud index (score = 11 − mud index), so 10 = Great conditions and 1 = Avoid.</p>
+<p><strong>Frozen:</strong> flagged when the 3-day rolling mean of shallow soil temperature (0–7 cm) drops to or below 0°C; single cold air-temperature spikes alone do not trigger it.</p>
+<p>Calibration parameters (<code>midpoint</code>, <code>steepness</code>, <code>precip_boost</code>, <code>soil_moisture_scale</code>) are set per park in <code>data/parks.yml</code>. The model has not been validated against field observations — treat scores as estimates, especially near level boundaries.</p>
 </div>
 </div>
 </div>
@@ -791,6 +785,19 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
   <a rel="license" property="http://creativecommons.org/ns#license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img src="https://licensebuttons.net/l/by-nc-nd/4.0/88x31.png" alt="CC BY-NC-ND 4.0"></a>
   </div>
 </footer>
+
+<script>
+(function () {
+  var banner = document.querySelector('.tp-update-banner');
+  if (!banner) return;
+  var renderedAt = parseInt(banner.getAttribute('data-rendered-at'), 10);
+  if (!renderedAt) return;
+  var ageHours = (Date.now() / 1000 - renderedAt) / 3600;
+  if (ageHours > 24) {
+    banner.classList.add('tp-stale');
+  }
+})();
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
