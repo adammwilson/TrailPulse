@@ -3,14 +3,13 @@
 # Source after setup.R (requires tidyverse/dplyr, lubridate, glue).
 
 # ── Constants ────────────────────────────────────────────────────────────────
-CONDITION_BREAKS   <- c(2, 4, 6, 8)
-CONDITION_LABELS_5 <- c("Avoid", "Poor", "Fair", "Good", "Great")
+CONDITION_BREAKS   <- c(2, 6, 8)
+CONDITION_LABELS_5 <- c("Avoid", "Poor", "Good", "Great")
 
-# Colours match og_card.R's existing 4-tier palette, extended to 5 tiers.
+# 4-tier palette: Poor/Good boundary aligns with go/no-go threshold (score = 6).
 CONDITION_COLORS_5 <- c(
   "Avoid" = "#ef4444",
   "Poor"  = "#f59e0b",
-  "Fair"  = "#eab308",
   "Good"  = "#84cc16",
   "Great" = "#22c55e"
 )

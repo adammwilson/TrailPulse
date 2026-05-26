@@ -28,7 +28,7 @@
   lbl    <- score_to_label(score)
   clr    <- condition_color(lbl)
   icon_n <- switch(lbl,
-    "Avoid" = 4L, "Poor" = 4L, "Fair" = 3L, "Good" = 2L, "Great" = 1L
+    "Avoid" = 4L, "Poor" = 4L, "Good" = 2L, "Great" = 1L
   )
 
   list(label = lbl, icon_num = icon_n, icon_dir = idir, rank_col = clr)

@@ -2,7 +2,7 @@
 # Returns an htmltools <img> tag for the appropriate mudface PNG icon.
 # Icons live in img/mudface/mudface01.png – mudface04.png.
 # Icon selection is based on the unified condition_score [1–10]:
-#   ≤4 (Avoid/Poor) → icon 4 · ≤6 (Fair) → icon 3 · ≤8 (Good) → icon 2 · >8 (Great) → icon 1
+#   ≤4 (Avoid/Poor) → icon 4 · ≤6 (Poor) → icon 3 · ≤8 (Good) → icon 2 · >8 (Great) → icon 1
 #
 # Depends on: htmltools, condition.R
 
@@ -17,7 +17,7 @@ make_mudface <- function(condition_score, size = "160px", label = TRUE, temp_c =
   src <- sprintf("../../img/mudface/mudface%02d.png", n)
   img <- htmltools::tags$img(
     src   = src,
-    alt   = c("Great", "Good", "Fair", "Poor/Avoid")[n],
+    alt   = c("Great", "Good", "Poor", "Poor/Avoid")[n],
     style = sprintf("width:%s;height:%s;object-fit:contain;", size, size)
   )
 
