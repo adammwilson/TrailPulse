@@ -6,7 +6,6 @@ _site
 *cache
 *_files
 /.quarto/
-styles*
 widgets
 
 **/*.quarto_ipynb
