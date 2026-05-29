@@ -36,6 +36,10 @@
   dg
 }
 
+# ── 31-day centred rolling mean — used by climatology ribbons everywhere ────
+.rollm <- function(x) zoo::rollapply(x, width = 45L, FUN = mean, na.rm = TRUE,
+                                     partial = TRUE, align = "center")
+
 # ────────────────────────────────────────────────────────────────────────────
 # 1.  Current conditions + forecast — 4 compact shared-axis panels
 #     (a) Temperature   (b) Precipitation   (c) Soil Moisture (3 depths)
@@ -60,9 +64,6 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
   .map_clim <- function(doy_df) {
     win_dates |> left_join(doy_df, by = "doy") |> arrange(date)
   }
-
-  .rollm <- function(x) zoo::rollapply(x, width = 31L, FUN = mean, na.rm = TRUE,
-                                       fill = NA, partial = TRUE, align = "center")
 
   # Fractional-day numeric (days since 1970-01-01) — aligns daily & hourly on same axis
   .hrx <- function(dt) {
@@ -422,7 +423,9 @@ plot_cumulative_precip_ytd <- function(weather_df) {
       p75 = quantile(cum_precip, 0.75, na.rm = TRUE),
       p95 = quantile(cum_precip, 0.95, na.rm = TRUE),
       .groups = "drop"
-    )
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
 
   hist_lines <- cumprec |> filter(cal_year < today_year)
   cur_line   <- cumprec |> filter(cal_year == today_year)
@@ -471,7 +474,9 @@ plot_soil_moisture_history <- function(weather_df) {
       p75 = quantile(soil_wetness, 0.75, na.rm = TRUE),
       p95 = quantile(soil_wetness, 0.95, na.rm = TRUE),
       .groups = "drop"
-    )
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
 
   hist_lines <- sm |> filter(cal_year < today_year)
   cur_line   <- sm |> filter(cal_year == today_year)
@@ -518,7 +523,9 @@ plot_temperature_history <- function(weather_df) {
       p75 = quantile(temp_max_f, 0.75, na.rm = TRUE),
       p95 = quantile(temp_max_f, 0.95, na.rm = TRUE),
       .groups = "drop"
-    )
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
 
   hist_lines <- tmp |> filter(cal_year < today_year)
   cur_line   <- tmp |> filter(cal_year == today_year)
@@ -576,7 +583,9 @@ plot_streamflow <- function(stream_df) {
       p75 = quantile(roll7_cfs, 0.75, na.rm = TRUE),
       p95 = quantile(roll7_cfs, 0.95, na.rm = TRUE),
       .groups = "drop"
-    )
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
 
   hist_lines <- sf |> filter(cal_year < today_cy)
   cur_line   <- sf |> filter(cal_year == today_cy)
