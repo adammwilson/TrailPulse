@@ -282,3 +282,102 @@ fetch_weather <- function(
 
   weather
 }
+
+# ── Hourly weather fetch (recent history + forecast) ─────────────────────────
+# Returns an hourly tibble for the current-conditions panel.
+# Columns: datetime (POSIXct, local tz), temperature_2m (°C),
+#          precipitation (mm), soil_moisture_0_1/1_3/3_9 (m³/m³).
+
+fetch_weather_hourly <- function(
+    lat           = PARK_LAT,
+    lon           = PARK_LON,
+    tz            = PARK_TZ,
+    past_days     = HISTORY_DAYS + 2L,
+    forecast_days = FORECAST_DAYS,
+    max_age_h     = 1,
+    api_key       = Sys.getenv("OPEN_METEO_API_KEY", unset = ""),
+    cache_dir     = "data/cache"
+) {
+  empty <- tibble(
+    datetime          = as.POSIXct(character()),
+    temperature_2m    = numeric(),
+    precipitation     = numeric(),
+    soil_moisture_0_1 = numeric(),
+    soil_moisture_1_3 = numeric(),
+    soil_moisture_3_9 = numeric()
+  )
+
+  if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE)
+
+  key        <- sprintf("%.4f_%.4f", lat, lon)
+  cache_file <- file.path(cache_dir, paste0("weather_hourly_", key, ".rds"))
+
+  cache_age_h <- if (file.exists(cache_file))
+    as.numeric(difftime(Sys.time(), file.mtime(cache_file), units = "hours"))
+  else Inf
+
+  if (cache_age_h < max_age_h) {
+    message(sprintf("Using cached hourly weather (%.0f min old).", cache_age_h * 60))
+    return(readRDS(cache_file))
+  }
+
+  .maybe_key <- function(req) {
+    if (nzchar(api_key)) httr2::req_url_query(req, apikey = api_key) else req
+  }
+
+  message("Fetching hourly weather (past ", past_days, " days + ", forecast_days, "-day forecast)...")
+
+  result <- tryCatch({
+    resp <- httr2::request("https://api.open-meteo.com/v1/forecast") |>
+      httr2::req_url_query(
+        latitude      = lat,
+        longitude     = lon,
+        timezone      = tz,
+        past_days     = past_days,
+        forecast_days = forecast_days,
+        hourly        = paste(c(
+          "temperature_2m",
+          "precipitation",
+          "soil_moisture_0_to_1cm",
+          "soil_moisture_1_to_3cm",
+          "soil_moisture_3_to_9cm"
+        ), collapse = ",")
+      ) |>
+      .maybe_key() |>
+      httr2::req_timeout(30) |>
+      httr2::req_retry(
+        max_tries    = 3,
+        is_transient = \(r) httr2::resp_status(r) %in% c(429L, 500L, 502L, 503L, 504L),
+        backoff      = \(i) 10 * 2^(i - 1L)
+      ) |>
+      httr2::req_perform()
+
+    bod <- httr2::resp_body_json(resp, simplifyVector = TRUE)
+    if (!is.null(bod$error)) stop("Open-Meteo error: ", bod$reason)
+
+    as_tibble(bod$hourly) |>
+      mutate(datetime = lubridate::ymd_hm(time, tz = tz)) |>
+      select(-time) |>
+      rename(
+        soil_moisture_0_1 = soil_moisture_0_to_1cm,
+        soil_moisture_1_3 = soil_moisture_1_to_3cm,
+        soil_moisture_3_9 = soil_moisture_3_to_9cm
+      ) |>
+      arrange(datetime)
+
+  }, error = function(e) {
+    stale_max_h <- 720
+    if (file.exists(cache_file) && cache_age_h <= stale_max_h) {
+      warning(sprintf("Hourly weather fetch failed (%s). Using stale cache (%.0f h old).",
+                      conditionMessage(e), cache_age_h))
+      readRDS(cache_file)
+    } else {
+      warning(sprintf("Hourly weather fetch failed (%s). Returning empty tibble.",
+                      conditionMessage(e)))
+      empty
+    }
+  })
+
+  if (!is.null(result) && nrow(result) > 0) saveRDS(result, cache_file)
+  result
+}

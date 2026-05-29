@@ -27,10 +27,10 @@
 
   lbl    <- score_to_label(score)
   clr    <- condition_color(lbl)
-  icon_n <- if      (score > 8) 1L
-             else if (score > 6) 2L
-             else if (score > 4) 3L
-             else                4L
+  icon_n <- if      (score >= 8) 1L
+             else if (score >= 6) 2L
+             else if (score >= 2) 3L
+             else                 4L
 
   list(label = lbl, icon_num = icon_n, icon_dir = idir, rank_col = clr)
 }

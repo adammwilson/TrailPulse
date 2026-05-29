@@ -36,7 +36,9 @@ if (is.null(weather_raw)) {
   knitr::knit_exit()
 } else {
   weather_mud  <- compute_mud_level(weather_raw) |> compute_snow_condition()
-  stream       <- fetch_streamflow()
+  stream         <- fetch_streamflow()
+  stream_uv      <- fetch_streamflow_uv()
+  weather_hourly <- fetch_weather_hourly()
   nws          <- tryCatch(fetch_nws_forecast(), error = function(e) {
     message("NWS fetch failed: ", e$message); .nws_empty()
   })
@@ -198,7 +200,7 @@ if (!is.na(temp_today)) {
            '</div>'))
 }
 cat(glue('<div class="tp-stat-box">',
-         '<div class="stat-value">{precip_7d} mm / {round(precip_7d / 25.4, 1)} in</div>',
+         '<div class="stat-value">{round(precip_7d / 25.4, 1)} in ({precip_7d} mm)</div>',
          '<div class="stat-label">Precip Last 7 Days</div>',
          '</div>'))
 cat('</div>')  # stat boxes
@@ -209,11 +211,11 @@ cat('</div>')  # condition-card
 ### Current Conditions & Forecast
 
 ```{r current-conditions}
-#| fig.height: 7
+#| fig.height: 9
 #| results: hide
-g <- plot_current_conditions(weather_mud, stream)
-grid::grid.newpage()
-grid::grid.draw(g)
+g <- plot_current_conditions(weather_mud, stream, stream_uv_df = stream_uv,
+                             weather_hourly_df = weather_hourly)
+print(g)
 ```
 
 ```{r gauge-note}
@@ -225,7 +227,7 @@ if (!is.null(stream) && nrow(stream) > 0)
 cat('<p style="font-size:0.8em;color:#888;margin-top:0.2rem;">',
     '<em>Solid line: observed value; dark ribbon: daily min\u2013max (temp) or 25\u2013',
     '75th percentile (soil/streamflow); light ribbon: 10th\u201390th percentile. ',
-    'Dotted line: historical median. Gray shading = forecast period.</em>',
+    'Gray shading = forecast period.</em>',
     '</p>')
 ```
 

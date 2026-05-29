@@ -39,8 +39,8 @@ parks:
     lat: 42.5340
     lon: -78.5300
     timezone: America/New_York
-    usgs_gauge: ~                     # no daily-value gauge on Sprague Brook
-    usgs_gauge_name: ~
+    usgs_gauge: "04215500"            # Cazenovia Creek at Ebenezer NY (proxy gauge)
+    usgs_gauge_name: Cazenovia Creek at Ebenezer NY
     weather_history_start: "2000-01-01"
     activities:
       - hiking

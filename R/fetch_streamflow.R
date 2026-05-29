@@ -1,6 +1,8 @@
 # R/fetch_streamflow.R
-# Fetch USGS daily streamflow for a park's gauge.
-# Returns a tidy tibble with water_year and rolling median.
+# Fetch USGS streamflow for a park's gauge.
+# Two functions:
+#   fetch_streamflow()    — daily mean values (for historical spaghetti plots)
+#   fetch_streamflow_uv() — 15-min unit values (for the current-conditions panel)
 #
 # Depends on: setup.R, parks_config.R
 
@@ -59,4 +61,51 @@ fetch_streamflow <- function(
     ) |>
     select(date, discharge_cfs, discharge_cms, roll7_cfs, water_year, dowy) |>
     arrange(date)
+}
+
+# ── 15-minute unit-value fetch ────────────────────────────────────────────────
+# Returns datetime (POSIXct, local tz) + discharge_cfs for the last `days` days.
+# Used for the current-conditions streamflow panel; NOT suitable for historical
+# spaghetti plots (use fetch_streamflow() for those).
+
+fetch_streamflow_uv <- function(
+    gauge = PARK_USGS,
+    days  = HISTORY_DAYS + FORECAST_DAYS + 2L,
+    tz    = PARK_TZ
+) {
+  empty <- tibble(datetime = as.POSIXct(character()), discharge_cfs = numeric())
+
+  if (is.null(gauge) || is.na(gauge) || !nzchar(as.character(gauge))) {
+    message("No USGS gauge configured — skipping 15-min streamflow.")
+    return(empty)
+  }
+
+  message("Fetching USGS 15-min streamflow for gauge ", gauge, "...")
+
+  raw <- tryCatch(
+    dataRetrieval::readNWISuv(
+      siteNumbers = gauge,
+      parameterCd = "00060",
+      startDate   = as.character(Sys.Date() - days),
+      endDate     = as.character(Sys.Date())
+    ),
+    error = function(e) {
+      warning("UV streamflow fetch failed for gauge ", gauge, ": ", e$message)
+      NULL
+    }
+  )
+
+  if (is.null(raw) || nrow(raw) == 0) {
+    warning("No 15-min streamflow data returned for gauge ", gauge)
+    return(empty)
+  }
+
+  raw |>
+    dataRetrieval::renameNWISColumns() |>
+    as_tibble() |>
+    rename(datetime = dateTime, discharge_cfs = Flow_Inst) |>
+    mutate(datetime = lubridate::with_tz(datetime, tz)) |>
+    filter(!is.na(discharge_cfs), discharge_cfs >= 0) |>
+    select(datetime, discharge_cfs) |>
+    arrange(datetime)
 }

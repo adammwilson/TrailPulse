@@ -8,6 +8,7 @@ execute:
   freeze: auto
 
 website:
+  google-analytics: "G-FHSPP71LBP"   # replace with your Measurement ID
   title: "TrailPulse"
   description: "Live mud scores, snow conditions, and 7-day forecasts for local trails. Know before you go."
   favicon: img/favicon.png
