@@ -95,6 +95,63 @@
   as.Date(paste0(substr(m, 4, 7), "-", substr(m, 8, 10)), format = "%Y-%j")
 }
 
+# ── Process TIFFs already on disk (no API download) ──────────────────────────
+# Used as a fallback when the AppEEARS task is still pending but TIFFs from a
+# prior run are already cached locally.
+.ae_download_evi_local <- function(raster_dir,
+                                   since = as.Date("2000-01-01")) {
+  .ae_process_tifs(raster_dir, since)
+}
+
+# ── Shared processing: compute mean EVI from local TIFFs for dates >= since ──
+.ae_process_tifs <- function(raster_dir, since = as.Date("2000-01-01")) {
+  all_tifs    <- list.files(raster_dir, pattern = "\\.tif$", full.names = TRUE)
+  evi_files   <- all_tifs[grepl("EVI",   basename(all_tifs))]
+  fmask_files <- all_tifs[grepl("Fmask", basename(all_tifs))]
+
+  evi_dates   <- as.Date(sapply(basename(evi_files),   .parse_doy_date))
+  fmask_dates <- as.Date(sapply(basename(fmask_files), .parse_doy_date))
+
+  keep_idx  <- which(!is.na(evi_dates) & evi_dates >= since)
+  if (length(keep_idx) == 0) return(tibble::tibble())
+  evi_files <- evi_files[keep_idx]
+  evi_dates <- evi_dates[keep_idx]
+
+  purrr::map_dfr(seq_along(evi_files), function(i) {
+    date  <- evi_dates[i]
+    if (is.na(date)) return(tibble::tibble())
+
+    r_evi    <- terra::rast(evi_files[i])
+    # terra auto-applies the HLS scale factor (0.0001) from TIFF metadata,
+    # returning values already in EVI range (approx -0.2 to 1.0).
+    evi_vals <- terra::values(r_evi, na.rm = FALSE)[, 1]
+
+    # Filter NA and any residual out-of-range values (fill values become NA via terra)
+    valid <- !is.na(evi_vals) & evi_vals >= -0.2 & evi_vals <= 1.0
+
+    # Apply Fmask cloud/shadow mask (bits 1-4; clear = 0).
+    # Fmask is a raw integer bitmask without scale factor — keep as.integer.
+    fm_idx <- which(fmask_dates == date)
+    if (length(fm_idx) == 1) {
+      fm_vals <- as.integer(terra::values(terra::rast(fmask_files[fm_idx]),
+                                          na.rm = FALSE)[, 1])
+      clear   <- !is.na(fm_vals) & (bitwAnd(fm_vals, 30L) == 0L)
+      valid   <- valid & clear
+    }
+
+    good <- evi_vals[valid]   # already scaled by terra
+    if (length(good) == 0) return(tibble::tibble())
+
+    tibble::tibble(
+      date     = date,
+      evi      = mean(good, na.rm = TRUE),
+      n_pixels = sum(valid)
+    )
+  }) |>
+    dplyr::filter(!is.na(evi), evi >= -0.2, evi <= 1.0) |>
+    dplyr::arrange(date)
+}
+
 # ── Download new TIFFs and compute mean EVI for dates >= since ───────────────
 # `since` limits which TIFFs get processed (avoids reprocessing all history).
 # TIFFs already on disk are never re-downloaded regardless of `since`.
@@ -128,54 +185,7 @@
     }
   })
 
-  # Pair EVI and Fmask files by date; only process dates >= since
-  all_tifs    <- list.files(raster_dir, pattern = "\\.tif$", full.names = TRUE)
-  evi_files   <- all_tifs[grepl("EVI",   basename(all_tifs))]
-  fmask_files <- all_tifs[grepl("Fmask", basename(all_tifs))]
-
-  evi_dates   <- as.Date(sapply(basename(evi_files),   .parse_doy_date))
-  fmask_dates <- as.Date(sapply(basename(fmask_files), .parse_doy_date))
-
-  # Restrict to new dates only
-  keep_idx  <- which(!is.na(evi_dates) & evi_dates >= since)
-  if (length(keep_idx) == 0) return(tibble::tibble())
-  evi_files <- evi_files[keep_idx]
-  evi_dates <- evi_dates[keep_idx]
-
-  purrr::map_dfr(seq_along(evi_files), function(i) {
-    date  <- evi_dates[i]
-    if (is.na(date)) return(tibble::tibble())
-
-    r_evi    <- terra::rast(evi_files[i])
-    evi_vals <- as.integer(terra::values(r_evi, na.rm = FALSE)[, 1])
-
-    # EVI fill values: 28672 (HLS standard) and -9999; valid raw range -3000–10000
-    valid <- !is.na(evi_vals) &
-             evi_vals != 28672L &
-             evi_vals != -9999L &
-             evi_vals > -3000L &
-             evi_vals < 10001L
-
-    # Apply Fmask cloud/shadow mask (bits 1-4; clear = 0)
-    fm_idx <- which(fmask_dates == date)
-    if (length(fm_idx) == 1) {
-      fm_vals <- as.integer(terra::values(terra::rast(fmask_files[fm_idx]),
-                                          na.rm = FALSE)[, 1])
-      clear   <- !is.na(fm_vals) & (bitwAnd(fm_vals, 30L) == 0L)
-      valid   <- valid & clear
-    }
-
-    good <- evi_vals[valid] * 0.0001   # apply HLS scale factor
-    if (length(good) == 0) return(tibble::tibble())
-
-    tibble::tibble(
-      date     = date,
-      evi      = mean(good, na.rm = TRUE),
-      n_pixels = sum(valid)
-    )
-  }) |>
-    dplyr::filter(!is.na(evi), evi >= -0.2, evi <= 1.0) |>
-    dplyr::arrange(date)
+  .ae_process_tifs(raster_dir, since)
 }
 
 # ── Public interface ──────────────────────────────────────────────────────────
@@ -286,6 +296,33 @@ fetch_evi <- function(
   }
 
   if (status != "done") {
+    # ── Fallback: process TIFFs already on disk without waiting for API ─────
+    # This handles the case where the task is still pending/running but we
+    # have a full raster archive from a prior completed task.
+    local_tifs <- list.files(raster_dir, pattern = "EVI.*\\.tif$", full.names = FALSE)
+    local_dates <- as.Date(sapply(local_tifs, .parse_doy_date))
+    have_local  <- sum(!is.na(local_dates) & local_dates >= update_start) > 0
+
+    if (have_local) {
+      message("AppEEARS task ", task_id, " is ", status,
+              " — processing existing local TIFFs (", length(local_tifs), " EVI files)")
+      new_rows <- tryCatch(
+        .ae_download_evi_local(raster_dir, since = update_start),
+        error = function(e) {
+          warning("Local TIFF processing failed: ", conditionMessage(e)); NULL
+        }
+      )
+      if (!is.null(new_rows) && nrow(new_rows) > 0) {
+        result <- dplyr::bind_rows(cached, new_rows) |>
+          dplyr::distinct(date, .keep_all = TRUE) |>
+          dplyr::arrange(date)
+        if (nrow(result) > 0) {
+          saveRDS(result, rds_file)
+          return(result)
+        }
+      }
+    }
+
     message("AppEEARS task ", task_id, " is ", status,
             " — EVI panel will update on next render after completion")
     if (!is.null(cached)) return(cached)

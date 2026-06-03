@@ -48,7 +48,8 @@
 #     align perfectly.  X-axis labels on bottom panel only.
 # ────────────────────────────────────────────────────────────────────────────
 plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
-                                    stream_uv_df = NULL, weather_hourly_df = NULL) {
+                                    stream_uv_df = NULL, weather_hourly_df = NULL,
+                                    evi_df = NULL) {
   today        <- Sys.Date()
   window_start <- today - 14L
   window_end   <- today + FORECAST_DAYS
@@ -396,7 +397,65 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
 
   panels <- list(p_cond, p_temp, p_precip, p_sm)
 
-  # ── (d) Streamflow — 15-min UV preferred, daily fallback (optional) ────────
+  # ── (d) EVI — satellite vegetation index, sparse obs, no forecast ─────────
+  if (!is.null(evi_df) && nrow(evi_df) > 0) {
+    evi_nd <- evi_df |>
+      mutate(
+        cal_year = year(date),
+        doy      = yday(date),
+        plot_x   = .dx(date)
+      )
+
+    evi_clim <- evi_nd |>
+      filter(cal_year < today_year) |>
+      group_by(doy) |>
+      summarise(
+        p25 = quantile(evi, 0.25, na.rm = TRUE),
+        p50 = quantile(evi, 0.50, na.rm = TRUE),
+        p75 = quantile(evi, 0.75, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      arrange(doy) |>
+      mutate(across(c(p25, p50, p75), .rollm)) |>
+      right_join(
+        tibble(doy = yday(all_dates), date = all_dates),
+        by = "doy"
+      ) |>
+      arrange(date) |>
+      mutate(plot_x = .dx(date))
+
+    evi_win <- evi_nd |>
+      filter(date >= window_start, date <= window_end)
+
+    p_evi <- ggplot() +
+      fc_shade + today_vl + fc_label +
+      geom_ribbon(data = evi_clim |> filter(!is.na(p25)),
+                  aes(plot_x, ymin = p25, ymax = p75),
+                  fill = "#84cc16", alpha = 0.25) +
+      geom_line(data = evi_clim |> filter(!is.na(p50)),
+                aes(plot_x, p50),
+                color = "#4a7c00", linewidth = 0.6, linetype = "dashed") +
+      {if (nrow(evi_win) > 0)
+          list(
+            geom_line(data = evi_win, aes(plot_x, evi),
+                      color = "#22c55e", linewidth = 1.1),
+            geom_point(data = evi_win, aes(plot_x, evi),
+                       color = "#22c55e", size = 2.0)
+          )} +
+      x_sc + th_upper +
+      scale_y_continuous(
+        name   = "EVI",
+        limits = c(0, 1),
+        breaks = c(0, 0.25, 0.5, 0.75, 1.0)
+      ) +
+      theme(axis.title.y.left = element_text(size = 10, face = "bold",
+                                              color = "#22c55e",
+                                              margin = margin(r = 4)))
+
+    panels <- c(panels, list(p_evi))
+  }
+
+  # ── (e) Streamflow — 15-min UV preferred, daily fallback (optional) ────────
   has_daily <- !is.null(stream_df)    && nrow(stream_df)    > 0
   has_uv    <- !is.null(stream_uv_df) && nrow(stream_uv_df) > 0
 
@@ -801,7 +860,9 @@ plot_evi_annual <- function(evi_df) {
       p75 = quantile(evi, 0.75, na.rm = TRUE),
       p95 = quantile(evi, 0.95, na.rm = TRUE),
       .groups = "drop"
-    )
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
 
   hist_lines <- nd |> filter(cal_year < today_year)
   cur_line   <- nd |> filter(cal_year == today_year)

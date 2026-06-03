@@ -212,10 +212,11 @@ cat('</div>')  # condition-card
 ### Current Conditions & Forecast
 
 ```{r current-conditions}
-#| fig.height: 9
+#| fig.height: 11
 #| results: hide
 g <- plot_current_conditions(weather_mud, stream, stream_uv_df = stream_uv,
-                             weather_hourly_df = weather_hourly)
+                             weather_hourly_df = weather_hourly,
+                             evi_df = evi_data)
 print(g)
 ```
 
