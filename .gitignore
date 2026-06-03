@@ -13,3 +13,4 @@ widgets
 **/*.knit.md
 _freeze/*
 site_libs
+*.DS_Store*

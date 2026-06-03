@@ -4,7 +4,7 @@
 # every park defined in data/parks.yml.
 #
 # Usage: Rscript scripts/prefetch_all_parks.R
-
+ 
 suppressPackageStartupMessages({
   library(yaml)
   library(dplyr)
