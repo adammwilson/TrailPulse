@@ -56,7 +56,7 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
   use_hourly   <- !is.null(weather_hourly_df) && nrow(weather_hourly_df) > 0
 
   wx      <- weather_mud_df |> filter(date >= window_start, date <= window_end)
-  hist_wx <- weather_mud_df |> filter(source == "history", year(date) < today_year)
+  hist_wx <- weather_mud_df |> filter(source %in% c("history", "era5"), year(date) < today_year)
 
   all_dates <- seq(window_start, window_end, by = "day")
   win_dates <- tibble(date = all_dates, doy = yday(all_dates))
@@ -102,7 +102,7 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
     plot.margin        = margin(2, 16, 0, 10)   # left/right room for axis titles
   )
   th_bottom <- th_upper + theme(
-    axis.text.x  = element_text(size = 10, angle = 30, hjust = 1),
+    axis.text.x  = element_text(size = 10, angle = 45, hjust = 1),
     axis.ticks.x = element_line(),
     plot.margin  = margin(0, 16, 2, 10)
   )
@@ -292,7 +292,109 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
       legend.background  = element_rect(fill = alpha("white", 0.7), color = NA)
     )
 
-  panels <- list(p_temp, p_precip, p_sm)
+  # ── (d) TrailPulse Score 1–10 ──────────────────────────────────────────────
+  # condition_score = 1 (impassable) → 10 (ideal / bone dry); already in wx/hist_wx
+  cond_clim <- hist_wx |>
+    filter(!is.na(condition_score)) |>
+    mutate(doy = yday(date)) |>
+    group_by(doy) |>
+    summarise(
+      clim_lo = quantile(condition_score, 0.10, na.rm = TRUE),
+      clim_hi = quantile(condition_score, 0.90, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    arrange(doy) |> mutate(across(starts_with("clim"), .rollm)) |> .map_clim() |>
+    mutate(plot_x = .dx(date))
+
+  cond_obs <- wx |>
+    filter(!is.na(condition_score)) |>
+    mutate(
+      plot_x   = .dx(date),
+      pt_color = dplyr::case_when(
+        condition_score >= 8 ~ CONDITION_COLORS_5["Great"],
+        condition_score >= 6 ~ CONDITION_COLORS_5["Good"],
+        condition_score >= 2 ~ CONDITION_COLORS_5["Poor"],
+        TRUE                 ~ CONDITION_COLORS_5["Avoid"]
+      ),
+      is_fc = source == "forecast"
+    )
+
+  # Colored segments for the TrailPulse Score line.
+  # Use hourly condition scores when available — gives ~24x more points so the
+  # color changes exactly when the score crosses a band boundary.
+  .cond_color <- function(score) dplyr::case_when(
+    score >= 8 ~ CONDITION_COLORS_5["Great"],
+    score >= 6 ~ CONDITION_COLORS_5["Good"],
+    score >= 2 ~ CONDITION_COLORS_5["Poor"],
+    TRUE       ~ CONDITION_COLORS_5["Avoid"]
+  )
+
+  if (use_hourly) {
+    cond_hr <- compute_mud_hourly(weather_hourly_df, wx) |>
+      filter(datetime >= as.POSIXct(window_start, tz = PARK_TZ),
+             datetime <= as.POSIXct(window_end + 1L, tz = PARK_TZ),
+             !is.na(condition_score)) |>
+      mutate(plot_x = .hrx(datetime), pt_color = .cond_color(condition_score))
+    cond_segs <- cond_hr |>
+      arrange(plot_x) |>
+      mutate(xend = lead(plot_x), yend = lead(condition_score)) |>
+      filter(!is.na(xend))
+  } else {
+    cond_segs <- cond_obs |>
+      arrange(plot_x) |>
+      mutate(xend = lead(plot_x), yend = lead(condition_score),
+             pt_color = .cond_color(condition_score)) |>
+      filter(!is.na(xend))
+  }
+
+  # Dual-axis x scale for the top panel (labels on top + bottom)
+  x_sc_top <- scale_x_continuous(
+    labels       = function(x) day_lbl(as.Date(round(x), origin = "1970-01-01")),
+    breaks       = as.numeric(breaks_x),
+    minor_breaks = NULL,
+    expand       = expansion(add = 0.5),
+    sec.axis     = dup_axis(name = NULL)
+  )
+
+  p_cond <- ggplot() +
+    # Background condition bands
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 1, ymax = 2,
+             fill = CONDITION_COLORS_5["Avoid"], alpha = 0.12) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 2, ymax = 6,
+             fill = CONDITION_COLORS_5["Poor"],  alpha = 0.10) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 6, ymax = 8,
+             fill = CONDITION_COLORS_5["Good"],  alpha = 0.10) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 8, ymax = 10,
+             fill = CONDITION_COLORS_5["Great"], alpha = 0.10) +
+    fc_shade + today_vl + fc_label +
+    # Go / no-go threshold
+    geom_hline(yintercept = 6, linetype = "dashed", color = "#555555", linewidth = 0.5) +
+    annotate("text", x = -Inf, y = 6.18, label = "Go \u2191",
+             hjust = -0.15, vjust = 0, size = 2.8, color = "#555555") +
+    {if (nrow(cond_clim) > 0 && any(!is.na(cond_clim$clim_lo)))
+        geom_ribbon(data = cond_clim |> filter(!is.na(clim_lo)),
+                    aes(plot_x, ymin = clim_lo, ymax = clim_hi),
+                    fill = "#888888", alpha = 0.20)} +
+    geom_segment(data = cond_segs,
+                 aes(x = plot_x, y = condition_score, xend = xend, yend = yend),
+                 color = cond_segs$pt_color, linewidth = 1.8, lineend = "round") +
+    geom_point(data = cond_obs,
+               aes(plot_x, condition_score, shape = is_fc),
+               color = cond_obs$pt_color, size = 2.5, stroke = 0) +
+    scale_shape_manual(values = c(`FALSE` = 16, `TRUE` = 21), guide = "none") +
+    scale_y_continuous(name = "TrailPulse Score (1\u201310)",
+                       limits = c(1, 10),
+                       breaks = c(2, 4, 6, 8, 10),
+                       expand = expansion(mult = c(0, 0.05))) +
+    x_sc_top + th_upper +
+    theme(
+      axis.title.y.left  = element_text(size = 10, face = "bold", color = "#555555",
+                                         margin = margin(r = 4)),
+      axis.text.x.top    = element_text(size = 9, angle = 45, hjust = 0),
+      axis.ticks.x.top   = element_line()
+    )
+
+  panels <- list(p_cond, p_temp, p_precip, p_sm)
 
   # ── (d) Streamflow — 15-min UV preferred, daily fallback (optional) ────────
   has_daily <- !is.null(stream_df)    && nrow(stream_df)    > 0
@@ -405,7 +507,7 @@ plot_cumulative_precip_ytd <- function(weather_df) {
   today_year <- year(Sys.Date())
 
   cumprec <- weather_df |>
-    filter(!is.na(precip), source == "history" | date <= Sys.Date()) |>
+    filter(!is.na(precip), source %in% c("history", "era5") | date <= Sys.Date()) |>
     mutate(cal_year = year(date), doy = yday(date)) |>
     group_by(cal_year) |>
     arrange(date) |>
@@ -454,7 +556,7 @@ plot_soil_moisture_history <- function(weather_df) {
   today_year <- year(Sys.Date())
 
   sm <- weather_df |>
-    filter(!is.na(soil_moisture_0_1), source == "history" | date <= Sys.Date()) |>
+    filter(!is.na(soil_moisture_0_1), source %in% c("history", "era5") | date <= Sys.Date()) |>
     mutate(
       soil_wetness = 0.50 * soil_moisture_0_1 +
                      0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
@@ -507,7 +609,7 @@ plot_temperature_history <- function(weather_df) {
   c2f <- function(c) c * 9/5 + 32
 
   tmp <- weather_df |>
-    filter(!is.na(temp_max), source == "history" | date <= Sys.Date()) |>
+    filter(!is.na(temp_max), source %in% c("history", "era5") | date <= Sys.Date()) |>
     mutate(cal_year   = year(date),
            doy        = yday(date),
            plot_date  = as.Date(paste0("2000-", doy), format = "%Y-%j"),
@@ -548,17 +650,83 @@ plot_temperature_history <- function(weather_df) {
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 6. Combined historical conditions — 4-panel patchwork
-#    (temperature / cumulative precip / soil wetness / streamflow)
+# 6. TrailPulse Score history — all years spaghetti + quantile ribbons
+# ────────────────────────────────────────────────────────────────────────────
+plot_trail_condition_history <- function(weather_df) {
+  today_year <- year(Sys.Date())
+
+  # Exclude frozen rows — condition_score is 5.0 (Fair) for frozen by design,
+  # which shows as distracting flat lines across winter in the spaghetti.
+  tc <- weather_df |>
+    filter(source %in% c("history", "era5") | date <= Sys.Date()) |>
+    filter(!is.na(condition_score), !frozen) |>
+    mutate(
+      cal_year  = year(date),
+      doy       = yday(date),
+      plot_date = as.Date(paste0("2000-", doy), format = "%Y-%j")
+    )
+
+  hist_quants <- tc |>
+    filter(cal_year < today_year) |>
+    group_by(doy, plot_date) |>
+    summarise(
+      p05 = quantile(condition_score, 0.05, na.rm = TRUE),
+      p25 = quantile(condition_score, 0.25, na.rm = TRUE),
+      p50 = quantile(condition_score, 0.50, na.rm = TRUE),
+      p75 = quantile(condition_score, 0.75, na.rm = TRUE),
+      p95 = quantile(condition_score, 0.95, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    arrange(doy) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
+
+  hist_lines <- tc |> filter(cal_year < today_year)
+  cur_line   <- tc |> filter(cal_year == today_year)
+
+  ggplot(hist_quants, aes(x = plot_date)) +
+    # Background condition bands
+    annotate("rect", xmin = as.Date("1999-12-31"), xmax = as.Date("2001-01-01"),
+             ymin = 1, ymax = 2,  fill = CONDITION_COLORS_5["Avoid"], alpha = 0.12) +
+    annotate("rect", xmin = as.Date("1999-12-31"), xmax = as.Date("2001-01-01"),
+             ymin = 2, ymax = 6,  fill = CONDITION_COLORS_5["Poor"],  alpha = 0.10) +
+    annotate("rect", xmin = as.Date("1999-12-31"), xmax = as.Date("2001-01-01"),
+             ymin = 6, ymax = 8,  fill = CONDITION_COLORS_5["Good"],  alpha = 0.10) +
+    annotate("rect", xmin = as.Date("1999-12-31"), xmax = as.Date("2001-01-01"),
+             ymin = 8, ymax = 10, fill = CONDITION_COLORS_5["Great"], alpha = 0.10) +
+    geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#cccccc", alpha = 0.50) +
+    geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#aaaaaa", alpha = 0.60) +
+    geom_line(data = hist_lines,
+              aes(y = condition_score, group = cal_year),
+              color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+    geom_line(aes(y = p50), color = "#555555", linewidth = 0.9) +
+    geom_line(data = cur_line, aes(y = condition_score),
+              color = "#d44000", linewidth = 1.2) +
+    geom_hline(yintercept = 6, linetype = "dashed", color = "#555555", linewidth = 0.5) +
+    annotate("text", x = as.Date("2000-01-05"), y = 6.2,
+             label = "Go / No-Go", hjust = 0, vjust = 0, size = 2.5, color = "#555555") +
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+    scale_y_continuous(limits = c(1, 10), breaks = c(2, 4, 6, 8, 10),
+                       expand = expansion(mult = c(0, 0.05))) +
+    labs(x = NULL, y = "TrailPulse Score (1\u201310)",
+         caption = glue("Bold Line: {today_year} \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo collated by TrailPulse")) +
+    theme_trailpulse() +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
+          plot.caption = element_text(size = 7, color = "grey50", hjust = 0))
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7. Combined historical conditions — 5-panel patchwork
+#    (TrailPulse Score / soil wetness / cumulative precip / temperature / streamflow)
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_conditions <- function(weather_df, stream_df) {
+  p_cond   <- plot_trail_condition_history(weather_df)
   p_soil   <- plot_soil_moisture_history(weather_df)
   p_precip <- plot_cumulative_precip_ytd(weather_df)
   p_temp   <- plot_temperature_history(weather_df)
   p_stream <- plot_streamflow(stream_df)
 
-  (p_soil / p_precip / p_temp / p_stream) +
-    patchwork::plot_layout(heights = c(1, 1, 1, 1))
+  (p_cond / p_soil / p_precip / p_temp / p_stream) +
+    patchwork::plot_layout(heights = c(1, 1, 1, 1, 1))
 }
 
 # ────────────────────────────────────────────────────────────────────────────

@@ -63,13 +63,21 @@ fetch_weather <- function(
   }
 
   # ── 1. HISTORICAL — archive-api.open-meteo.com (cached 24 h) ─────────────
+  # All rows in the hist cache are ERA5-Land reanalysis; relabel legacy "history"
+  # entries so the mud model can apply the ERA5 bias correction uniformly.
+  .relabel_era5 <- function(df) {
+    if (!is.null(df) && "source" %in% names(df))
+      df$source[df$source == "history"] <- "era5"
+    df
+  }
+
   hist_age <- .cache_age_h(hist_file)
   if (hist_age < hist_max_age_h) {
     message(sprintf("Using cached historical data (%.0f h old).", hist_age))
-    hist <- readRDS(hist_file)
+    hist <- .relabel_era5(readRDS(hist_file))
   } else {
     # If cache exists, only fetch dates newer than the last cached date
-    hist_cached <- if (file.exists(hist_file)) readRDS(hist_file) else NULL
+    hist_cached <- .relabel_era5(if (file.exists(hist_file)) readRDS(hist_file) else NULL)
     fetch_start <- if (!is.null(hist_cached) && nrow(hist_cached) > 0)
       max(hist_cached$date) - 10L   # overlap 10 days to catch late-arriving data
     else
@@ -136,7 +144,7 @@ fetch_weather <- function(
 
       result <- hist_daily |>
         left_join(hist_soil, by = "date") |>
-        mutate(source = "history")
+        mutate(source = "era5")
 
       # Merge with existing cache (new rows override old for overlapping dates)
       if (!is.null(hist_cached) && nrow(hist_cached) > 0) {
@@ -266,7 +274,7 @@ fetch_weather <- function(
 
   # ── 3. Combine (forecast/recent takes precedence over old archive) ─────────
   weather <- bind_rows(hist, fc) |>
-    arrange(date, desc(source == "history")) |>
+    arrange(date, desc(source == "era5")) |>
     distinct(date, .keep_all = TRUE) |>
     arrange(date) |>
     mutate(

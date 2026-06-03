@@ -24,14 +24,20 @@ compute_mud_level <- function(
     midpoint            = MUD_MIDPOINT,
     steepness           = MUD_STEEPNESS,
     precip_boost        = MUD_PRECIP_BOOST,
-    soil_moisture_scale = MUD_SOIL_SCALE
+    soil_moisture_scale = MUD_SOIL_SCALE,
+    hist_soil_scale     = HIST_SOIL_SCALE
 ) {
   weather_df |>
     mutate(
-      # Weighted soil wetness (0 - ~0.6 scale); site scale factor applied before sigmoid
+      # Weighted soil wetness (0 - ~0.6 scale); site scale factor applied before sigmoid.
+      # hist_soil_scale corrects the ERA5 reanalysis wet bias vs real-time Open-Meteo.
+      # Only applied to data older than 30 days — recent ERA5-RT tracks reality well.
       soil_wetness = case_when(
         !is.na(soil_moisture_0_1) ~
-          soil_moisture_scale * (
+          soil_moisture_scale *
+          if_else(!is.na(source) & source == "era5",
+                  hist_soil_scale, 1.0) *
+          (
             0.50 * soil_moisture_0_1 +
             0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
             0.15 * coalesce(soil_moisture_3_9, soil_moisture_0_1)
@@ -106,3 +112,45 @@ today_mud <- function(weather_mud_df) {
 }
 
 # mud_oneliner() removed — use condition_oneliner(mode="mud", ...) from condition.R
+
+# ── Hourly condition score (for current-conditions plot) ────────────────────
+# Applies the same sigmoid as compute_mud_level but on hourly soil moisture.
+# No hist_soil_scale — hourly data is always real-time Open-Meteo, never ERA5.
+# The frozen flag is joined from the already-computed daily weather_mud_df so
+# the same 3-day rolling-mean logic applies.
+compute_mud_hourly <- function(
+    hourly_df,
+    weather_mud_df,          # daily df already processed by compute_mud_level
+    midpoint            = MUD_MIDPOINT,
+    steepness           = MUD_STEEPNESS,
+    precip_boost        = MUD_PRECIP_BOOST,
+    soil_moisture_scale = MUD_SOIL_SCALE
+) {
+  daily_ref <- weather_mud_df |>
+    select(date, precip, frozen)
+
+  hourly_df |>
+    mutate(date = as.Date(datetime, tz = PARK_TZ)) |>
+    left_join(daily_ref, by = "date") |>
+    mutate(
+      soil_wetness = case_when(
+        !is.na(soil_moisture_0_1) ~
+          soil_moisture_scale * (
+            0.50 * soil_moisture_0_1 +
+            0.35 * coalesce(soil_moisture_1_3, soil_moisture_0_1) +
+            0.15 * coalesce(soil_moisture_3_9, soil_moisture_0_1)
+          ),
+        TRUE ~ NA_real_
+      ),
+      mud_raw   = 10 / (1 + exp(-steepness * (soil_wetness - midpoint))),
+      mud_score = case_when(
+        is.na(mud_raw)              ~ NA_real_,
+        !is.na(precip) & precip > 5 ~ pmin(mud_raw + precip_boost, 10),
+        TRUE                        ~ mud_raw
+      ),
+      frozen          = coalesce(frozen, FALSE),
+      condition_score = mud_to_condition_score(mud_score, frozen),
+      condition_label = score_to_label(condition_score),
+      source          = if_else(datetime > Sys.time(), "forecast", "history")
+    )
+}

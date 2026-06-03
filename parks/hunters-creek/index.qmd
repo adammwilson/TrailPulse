@@ -67,7 +67,7 @@ if (is.null(weather_raw)) {
 
   # Generate OG/social-media card image with today's conditions
   precip_7d <- weather_mud |>
-    filter(date >= Sys.Date() - 7, date <= Sys.Date(), source == "history") |>
+    filter(date >= Sys.Date() - 7, date <= Sys.Date(), source %in% c("history", "era5")) |>
     summarise(total = sum(precip, na.rm = TRUE)) |>
     pull(total)
 
@@ -250,12 +250,12 @@ if (nrow(nws) > 0)
 # Cumulative precip so far this calendar year vs. historical
 doy_now <- yday(Sys.Date())
 ytd_now <- weather_mud |>
-  filter(year(date) == year(Sys.Date()), date <= Sys.Date(), source == "history") |>
+  filter(year(date) == year(Sys.Date()), date <= Sys.Date(), source %in% c("history", "era5")) |>
   summarise(total = sum(precip, na.rm = TRUE)) |>
   pull(total)
 
 hist_ytd <- weather_mud |>
-  filter(year(date) < year(Sys.Date()), source == "history") |>
+  filter(year(date) < year(Sys.Date()), source %in% c("history", "era5")) |>
   mutate(doy = yday(date)) |>
   filter(doy <= doy_now) |>
   group_by(yr = year(date)) |>
