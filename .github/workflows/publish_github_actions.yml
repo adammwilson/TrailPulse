@@ -45,9 +45,9 @@ jobs:
           path: |
             parks/hunters-creek/data/cache
             parks/sprague-brook/data/cache
-          key: weather-cache-${{ github.run_id }}
+          key: park-cache-${{ github.run_id }}
           restore-keys: |
-            weather-cache-
+            park-cache-
 
       - name: Pre-fetch weather data for all parks
         run: Rscript scripts/prefetch_all_parks.R
@@ -58,3 +58,5 @@ jobs:
           target: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
