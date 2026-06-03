@@ -75,12 +75,12 @@ plot_current_conditions <- function(weather_mud_df, stream_df = NULL,
   # ── Shared x scale and annotation layers ─────────────────────────────────
   today_n  <- as.numeric(today)
   day_lbl  <- function(d) { lbl <- weekdays(d, abbreviate = TRUE); lbl[d == today] <- "Today"; lbl }
-  breaks_x <- sort(unique(c(today, all_dates[seq(1, length(all_dates), by = 2)])))
+  breaks_x <- all_dates   # tick + label every day
 
   x_sc <- scale_x_continuous(
     labels       = function(x) day_lbl(as.Date(round(x), origin = "1970-01-01")),
     breaks       = as.numeric(breaks_x),
-    minor_breaks = as.numeric(all_dates),
+    minor_breaks = NULL,
     expand       = expansion(add = 0.5)
   )
   fc_shade <- annotate("rect",
@@ -611,12 +611,12 @@ plot_streamflow <- function(stream_df) {
 # ────────────────────────────────────────────────────────────────────────────
 # 8. NDVI (HLS Landsat + Sentinel-2) — all years spaghetti + quantile ribbons
 # ────────────────────────────────────────────────────────────────────────────
-plot_ndvi_annual <- function(ndvi_df) {
-  if (is.null(ndvi_df) || nrow(ndvi_df) == 0) return(invisible(NULL))
+plot_evi_annual <- function(evi_df) {
+  if (is.null(evi_df) || nrow(evi_df) == 0) return(invisible(NULL))
 
   today_year <- year(Sys.Date())
 
-  nd <- ndvi_df |>
+  nd <- evi_df |>
     mutate(
       cal_year  = year(date),
       doy       = yday(date),
@@ -627,11 +627,11 @@ plot_ndvi_annual <- function(ndvi_df) {
     filter(cal_year < today_year) |>
     group_by(doy, plot_date) |>
     summarise(
-      p05 = quantile(ndvi, 0.05, na.rm = TRUE),
-      p25 = quantile(ndvi, 0.25, na.rm = TRUE),
-      p50 = quantile(ndvi, 0.50, na.rm = TRUE),
-      p75 = quantile(ndvi, 0.75, na.rm = TRUE),
-      p95 = quantile(ndvi, 0.95, na.rm = TRUE),
+      p05 = quantile(evi, 0.05, na.rm = TRUE),
+      p25 = quantile(evi, 0.25, na.rm = TRUE),
+      p50 = quantile(evi, 0.50, na.rm = TRUE),
+      p75 = quantile(evi, 0.75, na.rm = TRUE),
+      p95 = quantile(evi, 0.95, na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -643,18 +643,18 @@ plot_ndvi_annual <- function(ndvi_df) {
     geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
     geom_line(
       data  = hist_lines,
-      aes(y = ndvi, group = interaction(cal_year, sensor)),
+      aes(y = evi, group = cal_year),
       color = "#c8c8c8", linewidth = 0.3, alpha = 0.5
     ) +
     geom_line(aes(y = p50), color = "#555555", linewidth = 0.9) +
     {if (nrow(cur_line) > 0)
-        geom_line(data = cur_line, aes(y = ndvi),
+        geom_line(data = cur_line, aes(y = evi),
                   color = "#d44000", linewidth = 1.2)} +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
     scale_y_continuous(limits = c(-0.1, 1.0)) +
     labs(
       x       = NULL,
-      y       = "NDVI (Vegetation Index)",
+      y       = "EVI (Enhanced Vegetation Index)",
       caption = glue("Bold Line: {today_year} \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo, USGS, and NWS collated by TrailPulse")
     ) +
     theme_trailpulse() +

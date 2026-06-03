@@ -21,12 +21,13 @@ source("../../R/snow_model.R")
 source("../../R/plots.R")
 source("../../R/mudface.R")
 source("../../R/snowface.R")
-source("../../R/fetch_ndvi.R")
+source("../../R/fetch_evi.R")
 source("../../R/og_card.R")
 source("../../R/condition.R")
 ```
 
 ```{r fetch-data}
+#| freeze: false
 # ── Fetch all data ─────────────────────────────────────────────────────────
 weather_raw  <- fetch_weather()
 if (is.null(weather_raw)) {
@@ -43,8 +44,8 @@ if (is.null(weather_raw)) {
     message("NWS fetch failed: ", e$message); .nws_empty()
   })
   snow_summary <- current_snow_summary(weather_mud)
-  ndvi_data   <- tryCatch(fetch_ndvi(), error = function(e) {
-    warning("NDVI fetch failed: ", e$message); NULL
+  evi_data    <- tryCatch(fetch_evi(), error = function(e) {
+    warning("EVI fetch failed: ", e$message); NULL
   })
 
   # Today's conditions
@@ -279,11 +280,11 @@ if (!is.na(pct_rank)) {
 plot_historical_conditions(weather_mud, stream)
 ```
 
-#### Vegetation — NDVI (HLS Landsat + Sentinel-2)
+#### Vegetation — EVI (HLS Sentinel-2)
 
-```{r ndvi-annual}
+```{r evi-annual}
 #| fig.height: 4
-if (!is.null(ndvi_data)) plot_ndvi_annual(ndvi_data)
+if (!is.null(evi_data)) plot_evi_annual(evi_data)
 ```
 
 ## ❄️ Snow & Winter

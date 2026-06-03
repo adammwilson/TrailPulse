@@ -36,6 +36,8 @@ MUD_PRECIP_BOOST <- park$mud_calibration$precip_boost          %||% 1.0
 MUD_SOIL_SCALE   <- park$mud_calibration$soil_moisture_scale   %||% 1.0
 SNOW_START_MONTH <- park$snow_season$start_month %||% 11
 SNOW_END_MONTH   <- park$snow_season$end_month   %||% 4
+PARK_BOUNDARY    <- park$boundary_file %||% NULL
+PARK_ID          <- park$id
 
 # Null-coalescing operator if not already defined
 `%||%` <- function(a, b) if (!is.null(a)) a else b
