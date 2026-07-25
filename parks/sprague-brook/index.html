@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -12,10 +12,13 @@
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -40,14 +43,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6b7249c26820e032cb0bd839ff02b1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b85bc7c33db8c58e0ec93c3465666fed.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-a547dd1b4798262c927e2e52fa668cb1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-0e6a767e897e7be88fc84a61948225f0.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-a547dd1b4798262c927e2e52fa668cb1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6ac2aec46ad7f46b16024ee4409aa65c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-8a591ff59271d21f6a5d1e80b3747fb5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-6ac2aec46ad7f46b16024ee4409aa65c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -638,8 +641,8 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
 </header>
 
 
-<div class="tp-update-banner" data-rendered-at="1784883260">
-Last updated: July 24, 2026 at 04:54 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
+<div class="tp-update-banner" data-rendered-at="1784968967">
+Last updated: July 25, 2026 at 04:42 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
 </div>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">🥾 Trail Conditions</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">❄️ Snow &amp; Winter</a></li></ul>
@@ -650,10 +653,10 @@ Last updated: July 24, 2026 at 04:54 AM EDT. Data from <a href="https://open-met
 <img src="../../img/mudface/mudface01.png" alt="Great" style="width:160px;height:160px;object-fit:contain;">
 <div class="tp-score-col">
 <div class="tp-score-header">
-<span class="tp-score-num" style="color:#22c55e">8.4</span><span class="tp-label-pill" style="background:#22c55e">Great</span>
+<span class="tp-score-num" style="color:#22c55e">8.8</span><span class="tp-label-pill" style="background:#22c55e">Great</span>
 </div>
 <div class="tp-score-bar-bg">
-<div class="tp-score-bar-fill" style="width:82%;background:#22c55e">
+<div class="tp-score-bar-fill" style="width:87%;background:#22c55e">
 
 </div>
 </div>
@@ -669,12 +672,12 @@ Last updated: July 24, 2026 at 04:54 AM EDT. Data from <a href="https://open-met
 Trails are dry and firm — great day to hike or ride.
 </p>
 <div class="tp-context-row">
-📈 7-day forecast: Staying dry
+📈 7-day forecast: Getting muddier
 </div>
 <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">
 <div class="tp-stat-box">
 <div class="stat-value">
-80°F (27°C)
+80°F (26°C)
 </div>
 <div class="stat-label">
 Today’s High
@@ -682,7 +685,7 @@ Today’s High
 </div>
 <div class="tp-stat-box">
 <div class="stat-value">
-0.4 in (11.2 mm)
+0.5 in (11.6 mm)
 </div>
 <div class="stat-label">
 Precip Last 7 Days
@@ -716,43 +719,32 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 <div style="margin-top:0.75rem;">
 <div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
 <div class="nws-forecast-card">
-<div class="nws-period-name">Friday</div>
-<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
-<div class="nws-temp">
-80°F
-<br>
-27°C
-</div>
-<div class="nws-wind">0 to 3 mph</div>
-<div class="nws-desc">Sunny</div>
-</div>
-<div class="nws-forecast-card">
 <div class="nws-period-name">Saturday</div>
-<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,30?size=medium" width="48px" height="48px" alt="Mostly Sunny then Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-80°F
+79°F
 <br>
-27°C
+26°C
 </div>
-<div class="nws-precip">💧 27%</div>
-<div class="nws-wind">5 mph</div>
-<div class="nws-desc">Mostly Sunny then Chance Showers And Thunderstorms</div>
+<div class="nws-precip">💧 23%</div>
+<div class="nws-wind">6 mph</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Sunday</div>
-<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,30?size=medium" width="48px" height="48px" alt="Mostly Sunny then Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
 80°F
 <br>
 27°C
 </div>
-<div class="nws-precip">💧 26%</div>
+<div class="nws-precip">💧 22%</div>
 <div class="nws-wind">3 mph</div>
-<div class="nws-desc">Mostly Sunny then Chance Showers And Thunderstorms</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Monday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra_sct,50/tsra_sct,60?size=medium" width="48px" height="48px" alt="Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra_sct,30/tsra_sct,60?size=medium" width="48px" height="48px" alt="Slight Chance Showers And Thunderstorms then Showers And Thunderstorms Likely" onerror="this.style.display='none'">
 <div class="nws-temp">
 81°F
 <br>
@@ -760,43 +752,55 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 </div>
 <div class="nws-precip">💧 63%</div>
 <div class="nws-wind">1 to 5 mph</div>
-<div class="nws-desc">Chance Showers And Thunderstorms</div>
+<div class="nws-desc">Slight Chance Showers And Thunderstorms then Showers And Thunderstorms Likely</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Tuesday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra,70/tsra,80?size=medium" width="48px" height="48px" alt="Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra,80/tsra,90?size=medium" width="48px" height="48px" alt="Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-77°F
+76°F
 <br>
-25°C
+24°C
 </div>
-<div class="nws-precip">💧 79%</div>
+<div class="nws-precip">💧 87%</div>
 <div class="nws-wind">2 to 6 mph</div>
 <div class="nws-desc">Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Wednesday</div>
-<img src="https://api.weather.gov/icons/land/day/rain_showers,20/rain_showers,30?size=medium" width="48px" height="48px" alt="Chance Rain Showers" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra_sct,40/tsra_sct,50?size=medium" width="48px" height="48px" alt="Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<div class="nws-temp">
+72°F
+<br>
+22°C
+</div>
+<div class="nws-precip">💧 48%</div>
+<div class="nws-wind">2 to 7 mph</div>
+<div class="nws-desc">Chance Showers And Thunderstorms</div>
+</div>
+<div class="nws-forecast-card">
+<div class="nws-period-name">Thursday</div>
+<img src="https://api.weather.gov/icons/land/day/rain_showers,20?size=medium" width="48px" height="48px" alt="Slight Chance Rain Showers" onerror="this.style.display='none'">
 <div class="nws-temp">
 75°F
 <br>
 24°C
 </div>
-<div class="nws-precip">💧 28%</div>
-<div class="nws-wind">1 to 6 mph</div>
-<div class="nws-desc">Chance Rain Showers</div>
+<div class="nws-precip">💧 21%</div>
+<div class="nws-wind">0 to 5 mph</div>
+<div class="nws-desc">Slight Chance Rain Showers</div>
 </div>
 <div class="nws-forecast-card">
-<div class="nws-period-name">Thursday</div>
-<img src="https://api.weather.gov/icons/land/day/sct?size=medium" width="48px" height="48px" alt="Mostly Sunny" onerror="this.style.display='none'">
+<div class="nws-period-name">Friday</div>
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-77°F
+79°F
 <br>
-25°C
+26°C
 </div>
-<div class="nws-precip">💧 14%</div>
-<div class="nws-wind">0 to 5 mph</div>
-<div class="nws-desc">Mostly Sunny</div>
+<div class="nws-precip">💧 19%</div>
+<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 </div>
 </div>
@@ -894,11 +898,6 @@ Snow Days
 </p>
 <div class="tp-forecast-strip">
 <div class="tp-forecast-day">
-<span class="day-label">Sat</span>
-<img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
-<span class="mud-label">Avoid</span>
-</div>
-<div class="tp-forecast-day">
 <span class="day-label">Sun</span>
 <img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
 <span class="mud-label">Avoid</span>
@@ -923,6 +922,11 @@ Snow Days
 <img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
 <span class="mud-label">Avoid</span>
 </div>
+<div class="tp-forecast-day">
+<span class="day-label">Fri</span>
+<img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
+<span class="mud-label">Avoid</span>
+</div>
 </div>
 <div class="cell">
 <div class="cell-output-display">
@@ -933,43 +937,32 @@ Snow Days
 <div style="margin-top:0.75rem;">
 <div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
 <div class="nws-forecast-card">
-<div class="nws-period-name">Friday</div>
-<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
-<div class="nws-temp">
-80°F
-<br>
-27°C
-</div>
-<div class="nws-wind">0 to 3 mph</div>
-<div class="nws-desc">Sunny</div>
-</div>
-<div class="nws-forecast-card">
 <div class="nws-period-name">Saturday</div>
-<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,30?size=medium" width="48px" height="48px" alt="Mostly Sunny then Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-80°F
+79°F
 <br>
-27°C
+26°C
 </div>
-<div class="nws-precip">💧 27%</div>
-<div class="nws-wind">5 mph</div>
-<div class="nws-desc">Mostly Sunny then Chance Showers And Thunderstorms</div>
+<div class="nws-precip">💧 23%</div>
+<div class="nws-wind">6 mph</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Sunday</div>
-<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,30?size=medium" width="48px" height="48px" alt="Mostly Sunny then Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
 80°F
 <br>
 27°C
 </div>
-<div class="nws-precip">💧 26%</div>
+<div class="nws-precip">💧 22%</div>
 <div class="nws-wind">3 mph</div>
-<div class="nws-desc">Mostly Sunny then Chance Showers And Thunderstorms</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Monday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra_sct,50/tsra_sct,60?size=medium" width="48px" height="48px" alt="Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra_sct,30/tsra_sct,60?size=medium" width="48px" height="48px" alt="Slight Chance Showers And Thunderstorms then Showers And Thunderstorms Likely" onerror="this.style.display='none'">
 <div class="nws-temp">
 81°F
 <br>
@@ -977,43 +970,55 @@ Snow Days
 </div>
 <div class="nws-precip">💧 63%</div>
 <div class="nws-wind">1 to 5 mph</div>
-<div class="nws-desc">Chance Showers And Thunderstorms</div>
+<div class="nws-desc">Slight Chance Showers And Thunderstorms then Showers And Thunderstorms Likely</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Tuesday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra,70/tsra,80?size=medium" width="48px" height="48px" alt="Showers And Thunderstorms" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra,80/tsra,90?size=medium" width="48px" height="48px" alt="Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-77°F
+76°F
 <br>
-25°C
+24°C
 </div>
-<div class="nws-precip">💧 79%</div>
+<div class="nws-precip">💧 87%</div>
 <div class="nws-wind">2 to 6 mph</div>
 <div class="nws-desc">Showers And Thunderstorms</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Wednesday</div>
-<img src="https://api.weather.gov/icons/land/day/rain_showers,20/rain_showers,30?size=medium" width="48px" height="48px" alt="Chance Rain Showers" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/tsra_sct,40/tsra_sct,50?size=medium" width="48px" height="48px" alt="Chance Showers And Thunderstorms" onerror="this.style.display='none'">
+<div class="nws-temp">
+72°F
+<br>
+22°C
+</div>
+<div class="nws-precip">💧 48%</div>
+<div class="nws-wind">2 to 7 mph</div>
+<div class="nws-desc">Chance Showers And Thunderstorms</div>
+</div>
+<div class="nws-forecast-card">
+<div class="nws-period-name">Thursday</div>
+<img src="https://api.weather.gov/icons/land/day/rain_showers,20?size=medium" width="48px" height="48px" alt="Slight Chance Rain Showers" onerror="this.style.display='none'">
 <div class="nws-temp">
 75°F
 <br>
 24°C
 </div>
-<div class="nws-precip">💧 28%</div>
-<div class="nws-wind">1 to 6 mph</div>
-<div class="nws-desc">Chance Rain Showers</div>
+<div class="nws-precip">💧 21%</div>
+<div class="nws-wind">0 to 5 mph</div>
+<div class="nws-desc">Slight Chance Rain Showers</div>
 </div>
 <div class="nws-forecast-card">
-<div class="nws-period-name">Thursday</div>
-<img src="https://api.weather.gov/icons/land/day/sct?size=medium" width="48px" height="48px" alt="Mostly Sunny" onerror="this.style.display='none'">
+<div class="nws-period-name">Friday</div>
+<img src="https://api.weather.gov/icons/land/day/sct/tsra_hi,20?size=medium" width="48px" height="48px" alt="Mostly Sunny then Slight Chance Showers And Thunderstorms" onerror="this.style.display='none'">
 <div class="nws-temp">
-77°F
+79°F
 <br>
-25°C
+26°C
 </div>
-<div class="nws-precip">💧 14%</div>
-<div class="nws-wind">0 to 5 mph</div>
-<div class="nws-desc">Mostly Sunny</div>
+<div class="nws-precip">💧 19%</div>
+<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-desc">Mostly Sunny then Slight Chance Showers And Thunderstorms</div>
 </div>
 </div>
 </div>
