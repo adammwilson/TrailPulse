@@ -36,7 +36,7 @@ card_html <- purrr::map_chr(all_parks, function(p) {
   )
 })
 
-cat('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.25rem;margin-top:1.5rem;">\n')
+cat('<div class="tp-park-grid">\n')
 cat(paste(card_html, collapse = "\n"))
 cat('\n</div>\n')
 ```

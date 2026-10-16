@@ -21,4 +21,23 @@
     banner.classList.add('tp-stale');
   }
 })();
+
+/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB */
+(function () {
+  if (!window.TP_DEFAULT_SNOW_TAB) return;
+  function activateSnowTab() {
+    var links = document.querySelectorAll('.panel-tabset .nav-link');
+    for (var i = 0; i < links.length; i++) {
+      if (/Snow/i.test(links[i].textContent || '')) {
+        if (!links[i].classList.contains('active')) links[i].click();
+        return;
+      }
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', activateSnowTab);
+  } else {
+    activateSnowTab();
+  }
+})();
 </script>

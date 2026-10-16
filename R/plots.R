@@ -836,7 +836,7 @@ plot_streamflow <- function(stream_df) {
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 8. NDVI (HLS Landsat + Sentinel-2) — all years spaghetti + quantile ribbons
+# 8. EVI (HLS Sentinel-2) — all years spaghetti + quantile ribbons (historical means)
 # ────────────────────────────────────────────────────────────────────────────
 plot_evi_annual <- function(evi_df) {
   if (is.null(evi_df) || nrow(evi_df) == 0) return(invisible(NULL))
@@ -850,8 +850,10 @@ plot_evi_annual <- function(evi_df) {
       plot_date = as.Date(paste0("2000-", doy), format = "%Y-%j")
     )
 
-  hist_quants <- nd |>
-    filter(cal_year < today_year) |>
+  hist_lines <- nd |> filter(cal_year < today_year)
+  cur_line   <- nd |> filter(cal_year == today_year)
+
+  hist_quants <- hist_lines |>
     group_by(doy, plot_date) |>
     summarise(
       p05 = quantile(evi, 0.05, na.rm = TRUE),
@@ -861,21 +863,31 @@ plot_evi_annual <- function(evi_df) {
       p95 = quantile(evi, 0.95, na.rm = TRUE),
       .groups = "drop"
     ) |>
-    arrange(doy) |>
-    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
+    arrange(doy)
 
-  hist_lines <- nd |> filter(cal_year < today_year)
-  cur_line   <- nd |> filter(cal_year == today_year)
+  if (nrow(hist_quants) > 0) {
+    hist_quants <- hist_quants |>
+      mutate(across(c(p05, p25, p50, p75, p95), .rollm))
+  }
 
-  ggplot(hist_quants, aes(x = plot_date)) +
-    geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#ddd0ce", alpha = 0.50) +
-    geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
-    geom_line(
-      data  = hist_lines,
-      aes(y = evi, group = cal_year),
-      color = "#c8c8c8", linewidth = 0.3, alpha = 0.5
-    ) +
-    geom_line(aes(y = p50), color = "#555555", linewidth = 0.9) +
+  # Prefer climatology ribbons when history exists; otherwise plot available years
+  base <- if (nrow(hist_quants) > 0) {
+    ggplot(hist_quants, aes(x = plot_date)) +
+      geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#ddd0ce", alpha = 0.50) +
+      geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
+      geom_line(
+        data  = hist_lines,
+        aes(y = evi, group = cal_year),
+        color = "#c8c8c8", linewidth = 0.3, alpha = 0.5
+      ) +
+      geom_line(aes(y = p50), color = "#555555", linewidth = 0.9)
+  } else {
+    ggplot(nd, aes(x = plot_date)) +
+      geom_line(aes(y = evi, group = cal_year),
+                color = "#c8c8c8", linewidth = 0.3, alpha = 0.5)
+  }
+
+  base +
     {if (nrow(cur_line) > 0)
         geom_line(data = cur_line, aes(y = evi),
                   color = "#d44000", linewidth = 1.2)} +
@@ -884,7 +896,11 @@ plot_evi_annual <- function(evi_df) {
     labs(
       x       = NULL,
       y       = "EVI (Enhanced Vegetation Index)",
-      caption = glue("Bold Line: {today_year} \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo, USGS, and NWS collated by TrailPulse")
+      caption = glue(
+        "Bold Line: {today_year} \u2022 Line: Long-term Median \u2022 ",
+        "Bands: Long-term 5\u201395th & 25\u201375th Percentile.\n",
+        "HLS Sentinel-2 EVI (NASA AppEEARS) for {PARK_NAME} \u2014 TrailPulse"
+      )
     ) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
@@ -895,10 +911,11 @@ plot_evi_annual <- function(evi_df) {
 # 6. Cumulative snowfall — all seasons spaghetti + quantile ribbons (ggplot2)
 # ────────────────────────────────────────────────────────────────────────────
 plot_cumulative_snowfall <- function(weather_df) {
-  today_sy <- if (month(Sys.Date()) >= 11) year(Sys.Date()) else year(Sys.Date()) - 1L
+  today_sy <- current_snow_year()
+  origin   <- make_date(2000L, SNOW_START_MONTH, SNOW_START_DAY)
 
   cum_sf <- compute_cumulative_snowfall(weather_df) |>
-    mutate(plot_date = as.Date("2000-11-01") + doss - 1L)
+    mutate(plot_date = origin + doss - 1L)
 
   hist_quants <- cum_sf |>
     filter(snow_year < today_sy) |>
@@ -915,6 +932,20 @@ plot_cumulative_snowfall <- function(weather_df) {
   hist_lines <- cum_sf |> filter(snow_year < today_sy)
   cur_line   <- cum_sf |> filter(snow_year == today_sy)
 
+  if (nrow(hist_quants) == 0) {
+    return(
+      ggplot(cum_sf, aes(x = plot_date, y = cum_snowfall_cm, group = snow_year)) +
+        geom_line(color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+        {if (nrow(cur_line) > 0)
+            geom_line(data = cur_line, aes(group = NULL),
+                      color = "#d44000", linewidth = 1.2)} +
+        scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+        labs(x = NULL, y = "Cumulative Snowfall (cm)",
+             caption = glue("Winter season {SNOW_SEASON_LABEL}. Data for {PARK_NAME} \u2014 TrailPulse")) +
+        theme_trailpulse()
+    )
+  }
+
   ggplot(hist_quants, aes(x = plot_date)) +
     geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#ddd0ce", alpha = 0.50) +
     geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
@@ -926,17 +957,17 @@ plot_cumulative_snowfall <- function(weather_df) {
               color = "#d44000", linewidth = 1.2) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
     labs(x = NULL, y = "Cumulative Snowfall (cm)",
-         caption = glue("Bold Line: {today_sy}\u2013{today_sy + 1} \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo, USGS, and NWS collated by TrailPulse")) +
+         caption = glue("Bold Line: {today_sy}\u2013{today_sy + 1} ({SNOW_SEASON_LABEL}) \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo, USGS, and NWS collated by TrailPulse")) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
           plot.caption = element_text(size = 7, color = "grey50", hjust = 0))
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 7. Peak snow depth per winter – dot plot (ggplot2)
+# 7. Peak snow depth per winter – bar chart (ggplot2)
 # ────────────────────────────────────────────────────────────────────────────
 plot_snow_depth_history <- function(weather_df) {
-  today_sy <- if (month(Sys.Date()) >= 11) year(Sys.Date()) else year(Sys.Date()) - 1L
+  today_sy <- current_snow_year()
   peak     <- compute_peak_snow_depth(weather_df) |>
     filter(snow_year >= year(WEATHER_START))
 
@@ -953,12 +984,46 @@ plot_snow_depth_history <- function(weather_df) {
       vjust = -0.5, size = 3.5, color = "#1e88e5", fontface = "bold"
     ) +
     labs(
-      x = "Snow Season (year starting Nov)",
+      x = glue("Snow Season (year starting {month.abb[SNOW_START_MONTH]})"),
       y = "Peak Snow Depth (cm)",
       title = "Peak Snow Depth by Winter"
     ) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7b. Nordic skiable days by winter (snow_depth >= park threshold)
+# ────────────────────────────────────────────────────────────────────────────
+plot_nordic_ski_index <- function(weather_df,
+                                  threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
+  today_sy <- current_snow_year()
+  idx <- compute_nordic_ski_index(weather_df, threshold_cm = threshold_cm) |>
+    filter(snow_year >= year(WEATHER_START))
+
+  if (nrow(idx) == 0) return(invisible(NULL))
+
+  ggplot(idx, aes(x = snow_year, y = skiable_days)) +
+    geom_col(
+      aes(fill = snow_year == today_sy),
+      width = 0.7,
+      show.legend = FALSE
+    ) +
+    scale_fill_manual(values = c("FALSE" = "#b0d4ec", "TRUE" = "#1e88e5")) +
+    geom_text(
+      data = filter(idx, snow_year == today_sy),
+      aes(label = skiable_days),
+      vjust = -0.5, size = 3.5, color = "#1e88e5", fontface = "bold"
+    ) +
+    labs(
+      x = glue("Snow Season (year starting {month.abb[SNOW_START_MONTH]})"),
+      y = glue("Skiable days (\u2265{threshold_cm} cm)"),
+      title = glue("Nordic Skiable Days (\u2265{threshold_cm} cm depth)"),
+      caption = glue("Winter season {SNOW_SEASON_LABEL}. Count of days with mean snow depth \u2265 {threshold_cm} cm.")
+    ) +
+    theme_trailpulse() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+          plot.caption = element_text(size = 7, color = "grey50", hjust = 0))
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -985,7 +1050,10 @@ mud_forecast_strip <- function(weather_mud_df) {
     )
   })
 
-  htmltools::div(class = "tp-forecast-strip", !!!day_divs)
+  htmltools::div(
+    class = "tp-hscroll",
+    htmltools::div(class = "tp-forecast-strip tp-forecast-strip--scroll", !!!day_divs)
+  )
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -1012,7 +1080,10 @@ snow_forecast_strip <- function(weather_df) {
     )
   })
 
-  htmltools::div(class = "tp-forecast-strip", !!!day_divs)
+  htmltools::div(
+    class = "tp-hscroll",
+    htmltools::div(class = "tp-forecast-strip tp-forecast-strip--scroll", !!!day_divs)
+  )
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -1044,9 +1115,12 @@ nws_forecast_strip <- function(nws_df) {
     )
   })
 
-  do.call(
-    htmltools::div,
-    c(list(class = "tp-forecast-strip", style = "flex-wrap:wrap; gap:0.75rem"),
-      Filter(Negate(is.null), cards))
+  htmltools::div(
+    class = "tp-hscroll",
+    do.call(
+      htmltools::div,
+      c(list(class = "tp-forecast-strip tp-forecast-strip--scroll"),
+        Filter(Negate(is.null), cards))
+    )
   )
 }
