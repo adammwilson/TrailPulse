@@ -43,6 +43,11 @@ SNOW_START_DAY   <- park$snow_season$start_day   %||% 1
 SNOW_END_MONTH   <- park$snow_season$end_month   %||% 5
 SNOW_END_DAY     <- park$snow_season$end_day     %||% 31
 NORDIC_SKI_THRESHOLD_CM <- park$nordic_ski_threshold_cm %||% 5
+# UI default tab window (Dec–Mar → Snow; Apr–Nov → Trail). Distinct from snow_season.
+DEFAULT_SNOW_TAB_START_MONTH <- park$default_snow_tab$start_month %||% 12
+DEFAULT_SNOW_TAB_START_DAY   <- park$default_snow_tab$start_day   %||% 1
+DEFAULT_SNOW_TAB_END_MONTH   <- park$default_snow_tab$end_month   %||% 3
+DEFAULT_SNOW_TAB_END_DAY     <- park$default_snow_tab$end_day     %||% 31
 PARK_BOUNDARY    <- park$boundary_file %||% NULL
 PARK_ID          <- park$id
 
