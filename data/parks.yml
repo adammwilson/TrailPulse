@@ -34,6 +34,12 @@ parks:
       end_month: 5
       end_day: 31
     nordic_ski_threshold_cm: 5   # skiable day = snow_depth >= this (cm)
+    # UI default tab only (not season stats): Snow Dec 1–Mar 31; Trail Apr 1–Nov 30
+    default_snow_tab:
+      start_month: 12
+      start_day: 1
+      end_month: 3
+      end_day: 31
 
   - id: sprague-brook
     name: Sprague Brook Park
@@ -67,3 +73,9 @@ parks:
       end_month: 5
       end_day: 31
     nordic_ski_threshold_cm: 5
+    # UI default tab only (not season stats): Snow Dec 1–Mar 31; Trail Apr 1–Nov 30
+    default_snow_tab:
+      start_month: 12
+      start_day: 1
+      end_month: 3
+      end_day: 31

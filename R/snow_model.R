@@ -47,6 +47,24 @@ is_snow_season <- function(date) {
   }
 }
 
+# ── UI default tab (driven by parks.yml default_snow_tab) ────────────────────
+# Default to Snow & Winter tab Dec 1 – Mar 31; Trail Conditions Apr 1 – Nov 30.
+# Separate from is_snow_season() which drives Nordic / seasonal stats (Sep–May).
+default_to_snow_tab <- function(date = Sys.Date()) {
+  m <- month(date)
+  d <- day(date)
+  after_start <- m > DEFAULT_SNOW_TAB_START_MONTH |
+    (m == DEFAULT_SNOW_TAB_START_MONTH & d >= DEFAULT_SNOW_TAB_START_DAY)
+  before_end <- m < DEFAULT_SNOW_TAB_END_MONTH |
+    (m == DEFAULT_SNOW_TAB_END_MONTH & d <= DEFAULT_SNOW_TAB_END_DAY)
+
+  if (DEFAULT_SNOW_TAB_START_MONTH > DEFAULT_SNOW_TAB_END_MONTH) {
+    after_start | before_end
+  } else {
+    after_start & before_end
+  }
+}
+
 current_snow_year <- function(date = Sys.Date()) {
   assign_snow_year(date)[[1]]
 }
