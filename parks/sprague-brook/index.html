@@ -89,6 +89,8 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
 </script>
 <style>
 /* ── TrailPulse custom styles ── */
+/* Source of truth for site CSS (_quarto.yml include-in-header).
+   Keep include/styles.css in sync when editing. */
 
 /* ── Hero section ── */
 .tp-hero {
@@ -145,12 +147,21 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
   margin: 1rem 0;
 }
 
+.tp-forecast-strip--scroll {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+}
+
 .tp-forecast-day {
   display: flex;
   flex-direction: column;
   align-items: center;
   font-size: 0.75rem;
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .tp-forecast-day .day-label {
@@ -163,12 +174,29 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
   color: var(--bs-secondary);
 }
 
+/* Horizontal scroll wrapper for NWS / forecast strips */
+.tp-hscroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1rem 0;
+  padding-bottom: 0.25rem;
+}
+
 /* ── Stat badges ── */
+.tp-stat-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
 .tp-stat-box {
   background: var(--bs-light);
   border-radius: 0.5rem;
   padding: 1rem 1.25rem;
   text-align: center;
+  flex: 1 1 140px;
+  min-width: 120px;
 }
 
 .tp-stat-box .stat-value {
@@ -200,6 +228,13 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
 }
 
 /* ── Park cards on landing page ── */
+.tp-park-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
 .tp-park-card {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.75rem;
@@ -241,6 +276,7 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
   align-items: center;
   gap: 0.15rem;
   font-size: 0.75rem;
+  flex-shrink: 0;
 }
 .nws-forecast-card .nws-period-name {
   font-weight: 600;
@@ -275,6 +311,13 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
   align-items: center;
   gap: 1.5rem;
   flex-wrap: wrap;
+}
+
+.tp-condition-main > svg {
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .tp-score-col {
@@ -371,6 +414,28 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
   font-weight: 700;
 }
 
+/* Charts / figures — never overflow viewport */
+.cell-output-display,
+.quarto-figure,
+.figure {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.cell-output-display img,
+.quarto-figure img,
+img.figure-img,
+.plotly {
+  max-width: 100%;
+  height: auto;
+}
+
+svg.ggplot,
+.cell-output-display svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Dark mode overrides */
 [data-bs-theme="dark"] .tp-go      { background: #14532d; color: #86efac; }
 [data-bs-theme="dark"] .tp-nogo    { background: #450a0a; color: #fca5a5; }
@@ -378,6 +443,78 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
 [data-bs-theme="dark"] .tp-score-bar-bg { background: #495057; }
 [data-bs-theme="dark"] .tp-update-banner { background: #1a2840; border-left-color: #4d9fff; }
 [data-bs-theme="dark"] .tp-update-banner.tp-stale { background: #3b1219; border-left-color: #f87171; color: #fca5a5; }
+[data-bs-theme="dark"] .tp-stat-box { background: var(--bs-secondary-bg, #343a40); }
+
+/* ── Phone ── */
+@media (max-width: 576px) {
+  .tp-condition-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .tp-condition-main > svg {
+    width: 100px;
+    max-width: 100px;
+  }
+
+  .tp-score-col {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tp-score-num {
+    font-size: 2rem;
+  }
+
+  .tp-label-pill {
+    font-size: 0.85rem;
+  }
+
+  .tp-stat-box {
+    flex: 1 1 calc(50% - 0.5rem);
+    padding: 0.75rem 0.85rem;
+  }
+
+  .tp-stat-box .stat-value {
+    font-size: 1.35rem;
+  }
+
+  .tp-stat-box .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .tp-percentile {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .tp-forecast-day svg {
+    width: 56px !important;
+    height: auto !important;
+  }
+
+  .tp-gonogo {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .tp-hero-text h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* ── Tablet ── */
+@media (min-width: 577px) and (max-width: 992px) {
+  .tp-score-num {
+    font-size: 2.5rem;
+  }
+
+  .tp-condition-main > svg {
+    width: 130px;
+  }
+}
 </style>
 
 
@@ -641,22 +778,23 @@ gtag('config', 'G-FHSPP71LBP', { 'anonymize_ip': true});
 </header>
 
 
-<div class="tp-update-banner" data-rendered-at="1792138184">
-Last updated: October 16, 2026 at 04:09 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
+<div class="tp-update-banner" data-rendered-at="1792202306">
+Last updated: October 16, 2026 at 09:58 PM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
 </div>
+<script>window.TP_DEFAULT_SNOW_TAB = true;</script>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">🥾 Trail Conditions</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">❄️ Snow &amp; Winter</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
 <div class="tp-condition-card">
 <div class="tp-condition-main">
-<img src="../../img/mudface/mudface03.png" alt="Poor" style="width:160px;height:160px;object-fit:contain;">
+<img src="../../img/mudface/mudface02.png" alt="Good" style="width:160px;height:160px;object-fit:contain;">
 <div class="tp-score-col">
 <div class="tp-score-header">
-<span class="tp-score-num" style="color:#f59e0b">4.3</span><span class="tp-label-pill" style="background:#f59e0b">Poor</span>
+<span class="tp-score-num" style="color:#84cc16">6.1</span><span class="tp-label-pill" style="background:#84cc16">Good</span>
 </div>
 <div class="tp-score-bar-bg">
-<div class="tp-score-bar-fill" style="width:37%;background:#f59e0b">
+<div class="tp-score-bar-fill" style="width:57%;background:#84cc16">
 
 </div>
 </div>
@@ -665,19 +803,19 @@ Last updated: October 16, 2026 at 04:09 AM EDT. Data from <a href="https://open-
 </div>
 </div>
 </div>
-<div class="tp-gonogo tp-nogo">
-❌ No-Go — Please stay home to protect the trails
+<div class="tp-gonogo tp-go">
+✅ Go — Trail conditions are acceptable
 </div>
 <p style="margin:0">
-Trails are muddy — consider staying on hard-packed surfaces. 🚵 Mountain biking is strongly discouraged.
+Trails are tacky — expect excellent grip, light mud on low sections.
 </p>
 <div class="tp-context-row">
-📈 7-day forecast: Getting much drier
+📈 7-day forecast: Getting drier
 </div>
-<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+<div class="tp-stat-row">
 <div class="tp-stat-box">
 <div class="stat-value">
-67°F (19°C)
+42°F (6°C)
 </div>
 <div class="stat-label">
 Today’s High
@@ -685,7 +823,7 @@ Today’s High
 </div>
 <div class="tp-stat-box">
 <div class="stat-value">
-0.8 in (20.1 mm)
+0.5 in (12 mm)
 </div>
 <div class="stat-label">
 Precip Last 7 Days
@@ -699,7 +837,7 @@ Precip Last 7 Days
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/current-conditions-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="index_files/figure-html/current-conditions-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -717,34 +855,23 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 <strong>NWS 7-Day Forecast</strong>
 </summary>
 <div style="margin-top:0.75rem;">
-<div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
-<div class="nws-forecast-card">
-<div class="nws-period-name">Friday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra,100/tsra,80?size=medium" width="48px" height="48px" alt="Periods Of Rain" onerror="this.style.display='none'">
-<div class="nws-temp">
-67°F
-<br>
-19°C
-</div>
-<div class="nws-precip">💧 100%</div>
-<div class="nws-wind">14 to 21 mph</div>
-<div class="nws-desc">Periods Of Rain</div>
-</div>
+<div class="tp-hscroll">
+<div class="tp-forecast-strip tp-forecast-strip--scroll">
 <div class="nws-forecast-card">
 <div class="nws-period-name">Saturday</div>
-<img src="https://api.weather.gov/icons/land/day/snow,30/bkn?size=medium" width="48px" height="48px" alt="Chance Snow Showers then Partly Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/snow,20/sct?size=medium" width="48px" height="48px" alt="Slight Chance Snow Showers then Mostly Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 45°F
 <br>
 7°C
 </div>
-<div class="nws-precip">💧 29%</div>
-<div class="nws-wind">6 to 14 mph</div>
-<div class="nws-desc">Chance Snow Showers then Partly Sunny</div>
+<div class="nws-precip">💧 20%</div>
+<div class="nws-wind">5 to 13 mph</div>
+<div class="nws-desc">Slight Chance Snow Showers then Mostly Sunny</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Sunday</div>
-<img src="https://api.weather.gov/icons/land/day/skc?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 58°F
 <br>
@@ -755,14 +882,14 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Monday</div>
-<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/skc?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
-65°F
+63°F
 <br>
-18°C
+17°C
 </div>
 <div class="nws-precip">💧 1%</div>
-<div class="nws-wind">3 mph</div>
+<div class="nws-wind">2 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -773,19 +900,19 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 <br>
 18°C
 </div>
-<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-wind">0 to 5 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Wednesday</div>
 <img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
-64°F
+63°F
 <br>
-18°C
+17°C
 </div>
-<div class="nws-precip">💧 1%</div>
-<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-precip">💧 2%</div>
+<div class="nws-wind">0 to 5 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -796,9 +923,22 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 <br>
 18°C
 </div>
-<div class="nws-precip">💧 1%</div>
+<div class="nws-precip">💧 2%</div>
 <div class="nws-wind">2 mph</div>
 <div class="nws-desc">Sunny</div>
+</div>
+<div class="nws-forecast-card">
+<div class="nws-period-name">Friday</div>
+<img src="https://api.weather.gov/icons/land/day/sct?size=medium" width="48px" height="48px" alt="Mostly Sunny" onerror="this.style.display='none'">
+<div class="nws-temp">
+63°F
+<br>
+17°C
+</div>
+<div class="nws-precip">💧 7%</div>
+<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-desc">Mostly Sunny</div>
+</div>
 </div>
 </div>
 </div>
@@ -810,7 +950,7 @@ Streamflow: USGS gauge 04215500 — Cazenovia Creek at Ebenezer NY.
 <section id="compared-to-previous-years" class="level3">
 <h3 class="anchored" data-anchor-id="compared-to-previous-years">Compared to Previous Years</h3>
 <div class="tp-percentile" style="margin-bottom:1rem;">
-Year-to-date precipitation is <strong>wetter than 96%</strong> of years since 2000.
+Calendar year-to-date precipitation is <strong>wetter than 96%</strong> of years since 2000.
 </div>
 <section id="historical-conditions-all-years" class="level4">
 <h4 class="anchored" data-anchor-id="historical-conditions-all-years">Historical Conditions — All Years</h4>
@@ -818,7 +958,7 @@ Year-to-date precipitation is <strong>wetter than 96%</strong> of years since 20
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/historical-conditions-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="index_files/figure-html/historical-conditions-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -826,6 +966,12 @@ Year-to-date precipitation is <strong>wetter than 96%</strong> of years since 20
 </section>
 <section id="vegetation-evi-hls-sentinel-2" class="level4">
 <h4 class="anchored" data-anchor-id="vegetation-evi-hls-sentinel-2">Vegetation — EVI (HLS Sentinel-2)</h4>
+<p>Current EVI also appears in the Current Conditions panel above (with historical percentile ribbons). The chart below shows all years, the long-term median, and percentile bands.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="callout callout-note"><div class="callout-body"><p><strong>HLS EVI unavailable</strong> for this park — requires a boundary geojson and NASA Earthdata credentials (or a warm AppEEARS cache).</p></div></div>
+</div>
+</div>
 </section>
 </section>
 </div>
@@ -853,7 +999,7 @@ Year-to-date precipitation is <strong>wetter than 96%</strong> of years since 20
 <p style="margin:0">
 No snow on the ground currently.
 </p>
-<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+<div class="tp-stat-row">
 <div class="tp-stat-box">
 <div class="stat-value">
 0 cm / 0 in
@@ -864,7 +1010,7 @@ Snow Depth Now
 </div>
 <div class="tp-stat-box">
 <div class="stat-value">
-214 cm / 84.4 in
+0 cm / 0 in
 </div>
 <div class="stat-label">
 Season Total
@@ -872,10 +1018,10 @@ Season Total
 </div>
 <div class="tp-stat-box">
 <div class="stat-value">
-54
+0
 </div>
 <div class="stat-label">
-Snow Days
+Skiable Days (≥5 cm)
 </div>
 </div>
 </div>
@@ -886,7 +1032,7 @@ Snow Days
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/snow-forecast-chart-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="index_files/figure-html/snow-forecast-chart-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -894,12 +1040,8 @@ Snow Days
 <p>
 <strong>Forecast snow conditions:</strong>
 </p>
-<div class="tp-forecast-strip">
-<div class="tp-forecast-day">
-<span class="day-label">Sat</span>
-<img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
-<span class="mud-label">Avoid</span>
-</div>
+<div class="tp-hscroll">
+<div class="tp-forecast-strip tp-forecast-strip--scroll">
 <div class="tp-forecast-day">
 <span class="day-label">Sun</span>
 <img src="../../img/snowface/snowface04.png" alt="Poor/Avoid" style="width:70px;height:70px;object-fit:contain;">
@@ -926,6 +1068,7 @@ Snow Days
 <span class="mud-label">Avoid</span>
 </div>
 </div>
+</div>
 <div class="cell">
 <div class="cell-output-display">
 <details>
@@ -933,34 +1076,23 @@ Snow Days
 <strong>NWS 7-Day Forecast</strong>
 </summary>
 <div style="margin-top:0.75rem;">
-<div class="tp-forecast-strip" style="flex-wrap:wrap; gap:0.75rem">
-<div class="nws-forecast-card">
-<div class="nws-period-name">Friday</div>
-<img src="https://api.weather.gov/icons/land/day/tsra,100/tsra,80?size=medium" width="48px" height="48px" alt="Periods Of Rain" onerror="this.style.display='none'">
-<div class="nws-temp">
-67°F
-<br>
-19°C
-</div>
-<div class="nws-precip">💧 100%</div>
-<div class="nws-wind">14 to 21 mph</div>
-<div class="nws-desc">Periods Of Rain</div>
-</div>
+<div class="tp-hscroll">
+<div class="tp-forecast-strip tp-forecast-strip--scroll">
 <div class="nws-forecast-card">
 <div class="nws-period-name">Saturday</div>
-<img src="https://api.weather.gov/icons/land/day/snow,30/bkn?size=medium" width="48px" height="48px" alt="Chance Snow Showers then Partly Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/snow,20/sct?size=medium" width="48px" height="48px" alt="Slight Chance Snow Showers then Mostly Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 45°F
 <br>
 7°C
 </div>
-<div class="nws-precip">💧 29%</div>
-<div class="nws-wind">6 to 14 mph</div>
-<div class="nws-desc">Chance Snow Showers then Partly Sunny</div>
+<div class="nws-precip">💧 20%</div>
+<div class="nws-wind">5 to 13 mph</div>
+<div class="nws-desc">Slight Chance Snow Showers then Mostly Sunny</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Sunday</div>
-<img src="https://api.weather.gov/icons/land/day/skc?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
 58°F
 <br>
@@ -971,14 +1103,14 @@ Snow Days
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Monday</div>
-<img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
+<img src="https://api.weather.gov/icons/land/day/skc?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
-65°F
+63°F
 <br>
-18°C
+17°C
 </div>
 <div class="nws-precip">💧 1%</div>
-<div class="nws-wind">3 mph</div>
+<div class="nws-wind">2 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -989,19 +1121,19 @@ Snow Days
 <br>
 18°C
 </div>
-<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-wind">0 to 5 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
 <div class="nws-period-name">Wednesday</div>
 <img src="https://api.weather.gov/icons/land/day/few?size=medium" width="48px" height="48px" alt="Sunny" onerror="this.style.display='none'">
 <div class="nws-temp">
-64°F
+63°F
 <br>
-18°C
+17°C
 </div>
-<div class="nws-precip">💧 1%</div>
-<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-precip">💧 2%</div>
+<div class="nws-wind">0 to 5 mph</div>
 <div class="nws-desc">Sunny</div>
 </div>
 <div class="nws-forecast-card">
@@ -1012,9 +1144,22 @@ Snow Days
 <br>
 18°C
 </div>
-<div class="nws-precip">💧 1%</div>
+<div class="nws-precip">💧 2%</div>
 <div class="nws-wind">2 mph</div>
 <div class="nws-desc">Sunny</div>
+</div>
+<div class="nws-forecast-card">
+<div class="nws-period-name">Friday</div>
+<img src="https://api.weather.gov/icons/land/day/sct?size=medium" width="48px" height="48px" alt="Mostly Sunny" onerror="this.style.display='none'">
+<div class="nws-temp">
+63°F
+<br>
+17°C
+</div>
+<div class="nws-precip">💧 7%</div>
+<div class="nws-wind">0 to 3 mph</div>
+<div class="nws-desc">Mostly Sunny</div>
+</div>
 </div>
 </div>
 </div>
@@ -1025,8 +1170,14 @@ Snow Days
 </section>
 <section id="compared-to-previous-winters" class="level3">
 <h3 class="anchored" data-anchor-id="compared-to-previous-winters">Compared to Previous Winters</h3>
+<p style="font-size:0.85em;color:#666;margin-bottom:0.75rem;">
+Winter season aggregates use <strong>Sep–May</strong> (not calendar year). Trail-tab precip percentiles remain calendar YTD.
+</p>
 <div class="tp-percentile" style="margin-bottom:1rem;">
-This season has been <strong>snowier than 88%</strong> of winters since 2000.
+Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 2000.
+</div>
+<div class="tp-percentile" style="margin-bottom:1rem;">
+0 skiable days (≥5 cm) so far — more than <strong>0%</strong> of seasons by this date.
 </div>
 <section id="cumulative-snowfall-all-seasons" class="level4">
 <h4 class="anchored" data-anchor-id="cumulative-snowfall-all-seasons">Cumulative Snowfall — All Seasons</h4>
@@ -1034,7 +1185,7 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/snowfall-spaghetti-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="index_files/figure-html/snowfall-spaghetti-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1046,7 +1197,19 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/snow-depth-history-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="index_files/figure-html/snow-depth-history-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="skiable-days-by-winter" class="level4">
+<h4 class="anchored" data-anchor-id="skiable-days-by-winter">Skiable Days by Winter</h4>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/nordic-ski-index-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1076,6 +1239,22 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
 </div>
 </div>
 </div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>About Snow &amp; Nordic Ski Index
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Winter stats use the park snow season from <code>data/parks.yml</code> (default <strong>Sep–May</strong>). A <strong>skiable day</strong> counts when daily mean snow depth is at or above the park threshold (default <strong>5 cm</strong>). The XC “Go” recommendation still uses the higher snow-condition score threshold (~10+ cm). Season labels use the September start year (e.g.&nbsp;2024–25).</p>
+</div>
+</div>
+</div>
 
 
 
@@ -1100,6 +1279,25 @@ This season has been <strong>snowier than 88%</strong> of winters since 2000.
   var ageHours = (Date.now() / 1000 - renderedAt) / 3600;
   if (ageHours > 24) {
     banner.classList.add('tp-stale');
+  }
+})();
+
+/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB */
+(function () {
+  if (!window.TP_DEFAULT_SNOW_TAB) return;
+  function activateSnowTab() {
+    var links = document.querySelectorAll('.panel-tabset .nav-link');
+    for (var i = 0; i < links.length; i++) {
+      if (/Snow/i.test(links[i].textContent || '')) {
+        if (!links[i].classList.contains('active')) links[i].click();
+        return;
+      }
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', activateSnowTab);
+  } else {
+    activateSnowTab();
   }
 })();
 </script>
