@@ -6,6 +6,9 @@
 
 if (!exists("park_id")) stop("park_id must be defined before sourcing parks_config.R")
 
+# Null-coalescing operator if not already defined (rlang may already provide it)
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
 # Resolve path relative to project root (works whether called from project root
 # or from a subdirectory like parks/hunters-creek/).
 .config_path <- if (file.exists("data/parks.yml")) {
@@ -35,12 +38,17 @@ MUD_STEEPNESS    <- park$mud_calibration$steepness             %||% 12
 MUD_PRECIP_BOOST <- park$mud_calibration$precip_boost          %||% 1.0
 MUD_SOIL_SCALE   <- park$mud_calibration$soil_moisture_scale   %||% 1.0
 HIST_SOIL_SCALE  <- park$mud_calibration$hist_soil_scale       %||% 1.0
-SNOW_START_MONTH <- park$snow_season$start_month %||% 11
-SNOW_END_MONTH   <- park$snow_season$end_month   %||% 4
+SNOW_START_MONTH <- park$snow_season$start_month %||% 9
+SNOW_START_DAY   <- park$snow_season$start_day   %||% 1
+SNOW_END_MONTH   <- park$snow_season$end_month   %||% 5
+SNOW_END_DAY     <- park$snow_season$end_day     %||% 31
+NORDIC_SKI_THRESHOLD_CM <- park$nordic_ski_threshold_cm %||% 5
 PARK_BOUNDARY    <- park$boundary_file %||% NULL
 PARK_ID          <- park$id
 
-# Null-coalescing operator if not already defined
-`%||%` <- function(a, b) if (!is.null(a)) a else b
+# Human-readable winter window, e.g. "Sep–May"
+SNOW_SEASON_LABEL <- paste0(
+  month.abb[SNOW_START_MONTH], "\u2013", month.abb[SNOW_END_MONTH]
+)
 
 message("Loaded park: ", PARK_NAME)

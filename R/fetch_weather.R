@@ -273,6 +273,8 @@ fetch_weather <- function(
   if (is.null(fc)) return(NULL)
 
   # ── 3. Combine (forecast/recent takes precedence over old archive) ─────────
+  # snow_year / doss follow parks.yml snow_season (default Sep–May).
+  # Logic mirrors assign_snow_year() / day_of_snow_season() in snow_model.R.
   weather <- bind_rows(hist, fc) |>
     arrange(date, desc(source == "era5")) |>
     distinct(date, .keep_all = TRUE) |>
@@ -282,9 +284,14 @@ fetch_weather <- function(
       dowy       = as.integer(date - make_date(
                      if_else(month(date) >= 10, year(date), year(date) - 1L), 10, 1
                    )) + 1L,
-      snow_year  = if_else(month(date) >= 11, year(date), year(date) - 1L),
+      snow_year  = if_else(
+        month(date) > SNOW_START_MONTH |
+          (month(date) == SNOW_START_MONTH & day(date) >= SNOW_START_DAY),
+        year(date),
+        year(date) - 1L
+      ),
       doss       = as.integer(date - make_date(
-                     if_else(month(date) >= 11, year(date), year(date) - 1L), 11, 1
+                     snow_year, SNOW_START_MONTH, SNOW_START_DAY
                    )) + 1L
     )
 

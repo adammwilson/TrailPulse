@@ -27,12 +27,13 @@ parks:
       precip_boost: 2.0         # clay holds surface water long after rain; stronger post-rain mud boost
       soil_moisture_scale: 1  # inflates soil wetness to compensate for slow surface drying on clay
       hist_soil_scale: 0.68     # ERA5 reanalysis wet bias vs real-time Open-Meteo at this location
-    # Snow season definition
+    # Snow / winter season: Sep 1 → May 31 (labelled by start year)
     snow_season:
-      start_month: 11
+      start_month: 9
       start_day: 1
-      end_month: 4
-      end_day: 30
+      end_month: 5
+      end_day: 31
+    nordic_ski_threshold_cm: 5   # skiable day = snow_depth >= this (cm)
 
   - id: sprague-brook
     name: Sprague Brook Park
@@ -61,7 +62,8 @@ parks:
       soil_moisture_scale: 1.0  # multiplier on soil wetness before sigmoid (>1 = muddier for same moisture)
       hist_soil_scale: 0.70     # ERA5 reanalysis wet bias vs real-time Open-Meteo at this location
     snow_season:
-      start_month: 11
+      start_month: 9
       start_day: 1
-      end_month: 4
-      end_day: 30
+      end_month: 5
+      end_day: 31
+    nordic_ski_threshold_cm: 5
