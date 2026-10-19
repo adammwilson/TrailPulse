@@ -5,8 +5,11 @@ on:
       - main
       - master
   schedule:
-    # Rebuild daily at 8 AM UTC (4 AM Eastern) for fresh data
-    - cron: '0 8 * * *'
+    # Fixed to EST (UTC−5), not EDT. During EDT these fire 7:00 AM / 2:00 PM local.
+    # 6:00 AM EST → 11:00 UTC
+    - cron: '0 11 * * *'
+    # 1:00 PM EST → 18:00 UTC
+    - cron: '0 18 * * *'
 
 name: Quarto Publish
 

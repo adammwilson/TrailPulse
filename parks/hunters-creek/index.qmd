@@ -6,6 +6,9 @@ execute:
   echo: false
   warning: false
   message: false
+format:
+  html:
+    include-in-header: og-meta.html
 ---
 
 ```{r setup}
@@ -71,6 +74,21 @@ if (is.null(weather_raw)) {
     summarise(total = sum(precip, na.rm = TRUE)) |>
     pull(total)
 
+  snowfall_48h_cm <- weather_mud |>
+    filter(date >= Sys.Date() - 1, date <= Sys.Date(),
+           is.na(source) | source != "forecast") |>
+    summarise(total = sum(coalesce(snowfall, 0), na.rm = TRUE)) |>
+    pull(total)
+
+  temp_high_f <- if (!is.na(today_row$temp_max))
+    round(today_row$temp_max * 9 / 5 + 32) else NA_real_
+  temp_low_f  <- if (!is.na(today_row$temp_min))
+    round(today_row$temp_min * 9 / 5 + 32) else NA_real_
+
+  # OG card mode: Dec–Mar or snow on ground (independent of default-tab season)
+  card_mode <- og_card_mode(Sys.Date(), depth_cm)
+  card_score <- if (identical(card_mode, "snow")) snow_score_now else mud_score_now
+
   # 3-day mud forecast summary
   fc_rows <- weather_mud |>
     filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
@@ -90,28 +108,35 @@ if (is.null(weather_raw)) {
     "Forecast unavailable"
   }
 
-  generate_og_card(
-    park_name            = park$name,
-    location             = park$location,
-    mud_condition_score  = mud_score_now,
-    snow_condition_score = snow_summary$condition_score,
-    go                   = mud_go,
-    temp_f               = round(today_row$temp_max * 9/5 + 32),
-    precip_7d_mm         = precip_7d,
-    forecast_summary     = forecast_summary,
-    output_path          = "og-card.png"
+  og <- generate_og_card(
+    park_name        = park$name,
+    location         = park$location,
+    mode             = card_mode,
+    condition_score  = card_score,
+    temp_high_f      = temp_high_f,
+    temp_low_f       = temp_low_f,
+    precip_7d_mm     = precip_7d,
+    forecast_summary = forecast_summary,
+    snow_depth_cm    = depth_cm,
+    snowfall_48h_cm  = snowfall_48h_cm,
+    output_path      = "og-card.png"
   )
+  write_og_meta(og$title, og$description, path = "og-meta.html")
 }
 ```
 
 ```{r update-banner}
 #| output: asis
 cat(glue(
+  '<div class="tp-page-toolbar">',
   '<div class="tp-update-banner" data-rendered-at="{floor(as.numeric(Sys.time()))}">',
   'Last updated: {last_updated}. Data from ',
   '<a href="https://open-meteo.com">Open-Meteo</a>, ',
   '<a href="https://waterdata.usgs.gov">USGS</a>, and ',
   '<a href="https://www.weather.gov">NWS</a>.',
+  '</div>',
+  '<button type="button" class="tp-share-btn" id="tp-share-btn" ',
+  'aria-label="Copy link to this park page">Share this page</button>',
   '</div>'
 ))
 if (isTRUE(show_snow)) {
@@ -135,20 +160,7 @@ oneliner <- condition_oneliner(
   frozen         = isTRUE(today_row$frozen)
 )
 
-# Go/No-Go banner
-frozen_now  <- isTRUE(today_row$frozen)
-if (frozen_now) {
-  gonogo_class <- "tp-caution"
-  go_text      <- "\u26a0\ufe0f Caution \u2014 Surface frozen, watch for ice"
-} else if (mud_go) {
-  gonogo_class <- "tp-go"
-  go_text      <- "\u2705 Go \u2014 Trail conditions are acceptable"
-} else {
-  gonogo_class <- "tp-nogo"
-  go_text      <- "\u274c No-Go \u2014 Please stay home to protect the trails"
-}
-
-# Numeric score and bar
+# Numeric score and bar (Avoid→Great only; no GO/NO-GO)
 score_display <- if (!is.na(mud_score_now)) round(mud_score_now, 1) else "?"
 bar_pct       <- if (!is.na(mud_score_now)) round((mud_score_now - 1) / 9 * 100) else 0
 rank_col      <- condition_color(mud_label)
@@ -166,12 +178,13 @@ cat('<div class="tp-condition-card">')
 
 # ── Main row: face + score ──
 cat('<div class="tp-condition-main">')
-cat(as.character(make_mudface(mud_score_now, size = "160px", label = FALSE, temp_c = today_row$temp_max)))
+# Face is secondary to score/label (score-forward hero)
+cat(as.character(make_mudface(mud_score_now, size = "112px", label = FALSE, temp_c = today_row$temp_max)))
 cat('<div class="tp-score-col">')
 cat(glue(
   '<div class="tp-score-header">',
-  '<span class="tp-score-num" style="color:{rank_col}">{score_display}</span>',
   '<span class="tp-label-pill" style="background:{rank_col}">{mud_label}</span>',
+  '<span class="tp-score-num" style="color:{rank_col}">{score_display}</span>',
   '</div>'
 ))
 cat(glue(
@@ -182,9 +195,6 @@ cat(glue(
 ))
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
-
-# ── Go/No-Go banner ──
-cat(glue('<div class="tp-gonogo {gonogo_class}">{go_text}</div>'))
 
 # ── One-liner description ──
 cat(glue('<p style="margin:0">{oneliner}</p>'))
@@ -324,17 +334,7 @@ snow_one <- condition_oneliner(
   pct_rank       = snow_summary$snow_pct_rank
 )
 
-# Go/No-Go
-snow_go <- go_recommendation(snow_score_now, "snow", "xc_ski")
-if (snow_go) {
-  snow_gonogo_class <- "tp-go"
-  snow_go_text      <- "\u2705 Go \u2014 Conditions are good for Nordic skiing"
-} else {
-  snow_gonogo_class <- "tp-nogo"
-  snow_go_text      <- "\u274c No-Go \u2014 Insufficient snow for skiing"
-}
-
-# Score and bar
+# Score and bar (Avoid→Great only; no GO/NO-GO)
 snow_score_display <- if (!is.na(snow_score_now)) round(snow_score_now, 1) else "?"
 snow_bar_pct       <- if (!is.na(snow_score_now)) round((snow_score_now - 1) / 9 * 100) else 0
 snow_rank_col      <- condition_color(snow_label)
@@ -349,12 +349,13 @@ cat('<div class="tp-condition-card">')
 
 # ── Main row: face + score ──
 cat('<div class="tp-condition-main">')
-cat(as.character(make_snowface(snow_score_now, size = "160px", label = FALSE)))
+# Face is secondary to score/label (score-forward hero)
+cat(as.character(make_snowface(snow_score_now, size = "112px", label = FALSE)))
 cat('<div class="tp-score-col">')
 cat(glue(
   '<div class="tp-score-header">',
-  '<span class="tp-score-num" style="color:{snow_rank_col}">{snow_score_display}</span>',
   '<span class="tp-label-pill" style="background:{snow_rank_col}">{snow_label}</span>',
+  '<span class="tp-score-num" style="color:{snow_rank_col}">{snow_score_display}</span>',
   '</div>'
 ))
 cat(glue(
@@ -365,9 +366,6 @@ cat(glue(
 ))
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
-
-# ── Go/No-Go banner ──
-cat(glue('<div class="tp-gonogo {snow_gonogo_class}">{snow_go_text}</div>'))
 
 # ── One-liner description ──
 cat(glue('<p style="margin:0">{snow_one}</p>'))
@@ -498,7 +496,7 @@ observations — treat scores as estimates, especially near level boundaries.
 
 Winter stats use the park snow season from `data/parks.yml` (default **Sep–May**).
 A **skiable day** counts when daily mean snow depth is at or above the park
-threshold (default **5 cm**). The XC “Go” recommendation still uses the higher
-snow-condition score threshold (~10+ cm). Season labels use the September start year
+threshold (default **5 cm**). Condition labels use the Avoid→Great snow-score
+scale (Good typically needs ~10+ cm). Season labels use the September start year
 (e.g. 2024–25).
 :::

@@ -40,4 +40,58 @@
     activateSnowTab();
   }
 })();
+
+/* Share this page — copy absolute park URL to clipboard */
+(function () {
+  var btn = document.getElementById('tp-share-btn');
+  if (!btn) return;
+  var idleLabel = btn.textContent;
+
+  function parkShareUrl() {
+    var origin = window.location.origin;
+    var path = window.location.pathname || '/';
+    path = path.replace(/index\.html?$/i, '');
+    if (path.charAt(path.length - 1) !== '/') path += '/';
+    if (origin && origin !== 'null') return origin + path;
+    return window.location.href.split('#')[0].split('?')[0];
+  }
+
+  function setFeedback(text, ok) {
+    btn.textContent = text;
+    btn.classList.toggle('tp-share-copied', !!ok);
+    window.setTimeout(function () {
+      btn.textContent = idleLabel;
+      btn.classList.remove('tp-share-copied');
+    }, 2000);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  btn.addEventListener('click', function () {
+    var url = parkShareUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        setFeedback('Link copied', true);
+      }).catch(function () {
+        var ok = fallbackCopy(url);
+        setFeedback(ok ? 'Link copied' : 'Copy failed', ok);
+      });
+      return;
+    }
+    var ok = fallbackCopy(url);
+    setFeedback(ok ? 'Link copied' : 'Copy failed', ok);
+  });
+})();
 </script>
