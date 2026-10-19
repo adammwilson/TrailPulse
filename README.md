@@ -25,6 +25,8 @@ GitHub Actions rebuilds the site twice daily at **6:00 AM and 1:00 PM EST** (UTC
 
 Drop a new entry in `data/parks.yml`, create a `parks/<park-id>/index.qmd` (copy Hunters Creek as a template), tune the mud model calibration for the local soils, and you're in.
 
+For Erie County parks, park boundaries for HLS EVI (AppEEARS) live at `parks/<park-id>/data/*.geojson`, referenced from `boundary_file` in `data/parks.yml` (path is relative to the park page directory). Source layer: [Erie County Parks Locator](https://gis.erie.gov/server/rest/services/EC_Parks/Parks_Locator/MapServer/1) (`NAME` / `SHORT_NAME` / `Location` / `acres`).
+
 ## NASA Earthdata credentials (NDVI)
 
 The NDVI panel fetches HLS Landsat + Sentinel-2 data via the [NASA AppEEARS API](https://appeears.earthdatacloud.nasa.gov), which requires a free [NASA Earthdata account](https://urs.earthdata.nasa.gov/users/new).
