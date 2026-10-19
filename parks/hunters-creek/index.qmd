@@ -489,8 +489,8 @@ plot_nordic_ski_index(weather_mud)
 #### Snow Depth & Snowfall by Winter
 
 ```{r snow-season-facets}
-#| fig-width: 8
-#| fig-height: 19.5
+#| fig-width: 9
+#| fig-height: 14
 #| out-width: "100%"
 plot_snow_season_facets(weather_mud)
 ```
