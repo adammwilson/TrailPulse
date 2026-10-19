@@ -1,0 +1,142 @@
+{
+  "type": "FeatureCollection",
+  "name": "sprague_brook",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sprague Brook Park",
+        "park_id": "sprague-brook",
+        "source_name": "Sprague Brook County Park",
+        "source_short_name": "Sprague Brook Park",
+        "source_location": "Concord & Sardinia, NY",
+        "source_acres": 967.12460227,
+        "source_objectid": 29,
+        "source": "Erie County Parks Locator MapServer layer 1 (https://gis.erie.gov/server/rest/services/EC_Parks/Parks_Locator/MapServer/1); Erie County Department of Environment and Planning, Office of Geographic Information Services, 2017. Lightly simplified for AppEEARS/HLS AOI use."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -78.62351,
+              42.60658
+            ],
+            [
+              -78.625422,
+              42.606629
+            ],
+            [
+              -78.625495,
+              42.604524
+            ],
+            [
+              -78.628158,
+              42.604586
+            ],
+            [
+              -78.628352,
+              42.595226
+            ],
+            [
+              -78.649856,
+              42.595876
+            ],
+            [
+              -78.649587,
+              42.595368
+            ],
+            [
+              -78.650072,
+              42.595368
+            ],
+            [
+              -78.649652,
+              42.59477
+            ],
+            [
+              -78.649708,
+              42.594742
+            ],
+            [
+              -78.648741,
+              42.592936
+            ],
+            [
+              -78.648818,
+              42.592902
+            ],
+            [
+              -78.648347,
+              42.591624
+            ],
+            [
+              -78.647685,
+              42.58901
+            ],
+            [
+              -78.64753,
+              42.589028
+            ],
+            [
+              -78.647449,
+              42.588444
+            ],
+            [
+              -78.647027,
+              42.587661
+            ],
+            [
+              -78.646825,
+              42.587726
+            ],
+            [
+              -78.646155,
+              42.586809
+            ],
+            [
+              -78.646298,
+              42.586726
+            ],
+            [
+              -78.645758,
+              42.586188
+            ],
+            [
+              -78.644852,
+              42.586764
+            ],
+            [
+              -78.643408,
+              42.585178
+            ],
+            [
+              -78.633951,
+              42.584811
+            ],
+            [
+              -78.619786,
+              42.584429
+            ],
+            [
+              -78.617432,
+              42.590357
+            ],
+            [
+              -78.615525,
+              42.597214
+            ],
+            [
+              -78.616155,
+              42.600569
+            ],
+            [
+              -78.62351,
+              42.60658
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
