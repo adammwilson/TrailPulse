@@ -1094,91 +1094,90 @@ plot_mean_7day_snow_depth <- function(weather_df) {
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 7d. Year-by-year snow facets: depth (area), snowfall (line), ski-day dots
-#     Pattern adapted from hunters_creek winter panels (Sep–May, park threshold).
+# 7d. Year-by-year snow facets (hunters_creek pattern)
+#     Grey depth area + red daily snowfall + blue dots at y=-10 for ski days.
+#     Synthetic sdate on a fixed season window; TrailPulse Sep–May prefs +
+#     Open-Meteo depth/snowfall (not GHCND). Threshold = park nordic setting.
 # ────────────────────────────────────────────────────────────────────────────
 plot_snow_season_facets <- function(weather_df,
                                     threshold_cm = NORDIC_SKI_THRESHOLD_CM,
-                                    ncol = 4L) {
-  daily <- compute_snow_season_daily(weather_df, threshold_cm = threshold_cm) |>
-    filter(snow_year >= year(WEATHER_START))
+                                    ncol = 3L) {
+  # Anchor calendar like hunters_creek (2020–21); only month/day matter
+  season_start <- make_date(2020L, SNOW_START_MONTH, SNOW_START_DAY)
+  season_stop  <- make_date(2021L, SNOW_END_MONTH, SNOW_END_DAY)
+
+  daily <- weather_df |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(is_snow_season(date)) |>
+    filter(snow_year >= year(WEATHER_START)) |>
+    mutate(
+      snowfall   = coalesce(snowfall, 0),
+      snow_depth = coalesce(snow_depth, 0),
+      winter     = snow_year,
+      # hunters_creek: sdate = ymd(paste(ifelse(month<6,2021,2020), month, day))
+      # Sep–May: months after calendar year-cross (Jun–Dec) → 2020; Jan–May → 2021
+      sdate = {
+        y_syn <- if_else(month(date) <= SNOW_END_MONTH, 2021L, 2020L)
+        # Avoid Feb-29 → non-leap overflow by building from month start + offset
+        make_date(y_syn, month(date), 1L) + (day(date) - 1L)
+      },
+      above_thresh = snow_depth >= threshold_cm
+    )
 
   if (nrow(daily) == 0) return(invisible(NULL))
 
-  # Align each winter on a common Sep–May axis (same trick as spaghetti plots)
-  origin <- make_date(2000L, SNOW_START_MONTH, SNOW_START_DAY)
-  daily  <- daily |>
-    mutate(plot_date = origin + doss - 1L)
-
-  ski_idx <- compute_nordic_ski_index(weather_df, threshold_cm = threshold_cm) |>
-    filter(snow_year >= year(WEATHER_START)) |>
+  # Per-winter cumulative ski days (park threshold), label like "N snow days"
+  snow_days <- daily |>
+    group_by(winter) |>
+    summarise(n_ski = sum(above_thresh, na.rm = TRUE), .groups = "drop") |>
     mutate(
-      season_lab = paste0(snow_year, "\u2013", substr(as.character(snow_year + 1L), 3, 4)),
-      ann_label  = glue("{skiable_days} ski days")
+      sdate = as.Date("2020-12-01"),
+      label = paste(n_ski, "ski days")
     )
 
-  # Dual-axis scale: depth area on left, daily snowfall line on right
-  depth_max <- max(daily$snow_depth, na.rm = TRUE)
-  depth_max <- if (is.finite(depth_max) && depth_max > 0) depth_max else 30
-  snow_max  <- max(daily$snowfall, na.rm = TRUE)
-  snow_max  <- if (is.finite(snow_max) && snow_max > 0) snow_max else 5
-  snow_to_depth <- depth_max / snow_max
+  # Reference annotates near y=100; raise if a winter tops that
+  y_label <- max(100, ceiling(max(daily$snow_depth, na.rm = TRUE)))
 
-  ski_pts <- daily |> filter(is_ski_day)
-
-  # Annotation anchors: upper-left of each facet
-  ann <- ski_idx |>
-    mutate(
-      plot_date  = origin + 5L,
-      ann_y      = depth_max * 0.92
-    )
-
-  season_levels <- sort(unique(daily$season_lab))
-  daily$season_lab   <- factor(daily$season_lab, levels = season_levels)
-  ski_pts$season_lab <- factor(ski_pts$season_lab, levels = season_levels)
-  ann$season_lab     <- factor(ann$season_lab, levels = season_levels)
-
-  ggplot(daily, aes(x = plot_date)) +
-    geom_area(
-      aes(y = snow_depth),
-      fill = "#90caf9", alpha = 0.55, color = NA
-    ) +
-    geom_line(
-      aes(y = snowfall * snow_to_depth),
-      color = "#0d47a1", linewidth = 0.35, na.rm = TRUE
-    ) +
+  ggplot(daily, aes(x = sdate)) +
+    facet_wrap(~winter, ncol = ncol) +
+    xlim(season_start, season_stop) +
+    geom_area(aes(y = snow_depth), fill = grey(0.6), color = NA) +
+    geom_line(aes(y = snowfall), color = "red", linewidth = 0.3, na.rm = TRUE) +
+    # Blue marks along the baseline for days meeting the ski-depth threshold
     geom_point(
-      data = ski_pts,
-      aes(y = snow_depth),
-      color = "#1565c0", size = 0.55, alpha = 0.85, na.rm = TRUE
+      aes(y = -10, color = above_thresh),
+      size = 0.1,
+      show.legend = FALSE
     ) +
+    scale_color_manual(values = c("FALSE" = "transparent", "TRUE" = "darkblue")) +
     geom_text(
-      data = ann,
-      aes(y = ann_y, label = ann_label),
-      hjust = 0, vjust = 1, size = 2.4, color = "#333333", fontface = "bold"
+      data = snow_days,
+      aes(x = sdate, y = y_label, label = label),
+      size = 2
     ) +
-    facet_wrap(~season_lab, ncol = ncol, scales = "fixed") +
-    scale_x_date(date_labels = "%b", date_breaks = "2 months") +
     scale_y_continuous(
-      name     = "Snow depth (cm)",
-      limits   = c(0, NA),
-      sec.axis = sec_axis(~ . / snow_to_depth, name = "Daily snowfall (cm)")
+      sec.axis = sec_axis(~ . * 0.033, name = "Snowfall / Depth (feet)")
     ) +
+    coord_fixed(ratio = 0.4) +
     labs(
-      x = NULL,
-      caption = glue(
-        "Area = snow depth \u2022 Line = daily snowfall \u2022 Dots = days with depth \u2265 {threshold_cm} cm. ",
-        "Annotation = cumulative ski days. Winter {SNOW_SEASON_LABEL}. {PARK_NAME} \u2014 TrailPulse"
+      x = "Date",
+      y = "Snowfall (red) & Snow Depth (grey) (cm)",
+      title = glue(
+        "Snowfall and Snow Depth ({year(WEATHER_START)}\u2013present, {PARK_NAME})"
+      ),
+      subtitle = glue(
+        "Red = daily snowfall, grey = snow depth. ",
+        "Blue dots = days with depth \u2265 {threshold_cm} cm (cumulative ski days). ",
+        "Winter season {SNOW_SEASON_LABEL}."
       )
     ) +
     theme_trailpulse(base_size = 10) +
     theme(
-      axis.text.x        = element_text(angle = 0, size = 7),
-      axis.title.y.right = element_text(color = "#0d47a1", size = 9),
-      axis.text.y.right  = element_text(color = "#0d47a1", size = 7),
-      strip.text         = element_text(face = "bold", size = 8),
-      panel.spacing      = unit(0.4, "lines"),
-      plot.caption       = element_text(size = 7, color = "grey50", hjust = 0)
+      axis.text.x  = element_text(size = 7),
+      strip.text   = element_text(face = "bold", size = 8),
+      panel.spacing = unit(0.35, "lines"),
+      plot.subtitle = element_text(size = 8),
+      plot.caption  = element_text(size = 7, color = "grey50", hjust = 0)
     )
 }
 

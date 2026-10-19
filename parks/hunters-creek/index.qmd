@@ -479,7 +479,7 @@ plot_nordic_ski_index(weather_mud)
 
 ```{r snow-season-facets}
 #| fig-width: 8
-#| fig-height: 16
+#| fig-height: 13
 #| out-width: "100%"
 plot_snow_season_facets(weather_mud)
 ```
