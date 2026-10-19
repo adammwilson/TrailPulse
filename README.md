@@ -18,6 +18,7 @@ Data flows in automatically:
 - **Weather** — [Open-Meteo](https://open-meteo.com) (historical archive + 7-day forecast)
 - **Streamflow** — [USGS](https://waterdata.usgs.gov) gauge on the Buffalo River near Elma
 - **Forecast text** — [NWS](https://www.weather.gov)
+- **Vegetation (EVI)** — HLS Sentinel-2 via [NASA AppEEARS](https://appeears.earthdatacloud.nasa.gov) (`HLSS30_VI.020` EVI layer; see `R/fetch_evi.R`)
 
 GitHub Actions rebuilds the site twice daily at **6:00 AM and 1:00 PM EST** (UTC crons `0 11` / `0 18`; during EDT that is 7:00 AM / 2:00 PM local). 
 
@@ -25,9 +26,9 @@ GitHub Actions rebuilds the site twice daily at **6:00 AM and 1:00 PM EST** (UTC
 
 Drop a new entry in `data/parks.yml`, create a `parks/<park-id>/index.qmd` (copy Hunters Creek as a template), tune the mud model calibration for the local soils, and you're in.
 
-## NASA Earthdata credentials (NDVI)
+## NASA Earthdata credentials (EVI)
 
-The NDVI panel fetches HLS Landsat + Sentinel-2 data via the [NASA AppEEARS API](https://appeears.earthdatacloud.nasa.gov), which requires a free [NASA Earthdata account](https://urs.earthdata.nasa.gov/users/new).
+Park summer/trail pages show current and historical HLS **EVI** (Enhanced Vegetation Index) via the [NASA AppEEARS API](https://appeears.earthdatacloud.nasa.gov), which requires a free [NASA Earthdata account](https://urs.earthdata.nasa.gov/users/new). Fetch and plotting live in `R/fetch_evi.R` and `R/plots.R` (`plot_current_conditions` + `plot_evi_annual`).
 
 ### Local development
 
@@ -38,7 +39,7 @@ EARTHDATA_USER=your_username
 EARTHDATA_PASSWORD=your_password
 ```
 
-Restart R after saving. The first render submits an async task to AppEEARS; the NDVI chart appears on the next render once the task completes (~5–20 min).
+Restart R after saving. The first render submits an async task to AppEEARS; the EVI chart appears on the next render once the task completes (~5–20 min).
 
 ### GitHub Actions
 
@@ -57,7 +58,7 @@ env:
   EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
 ```
 
-If the credentials are missing or invalid, the NDVI panel is silently skipped — all other panels render normally.
+If the credentials are missing or invalid, the EVI panel is silently skipped — all other panels render normally.
 
 ## Stack
 
