@@ -400,12 +400,6 @@ cat('</div>')  # condition-card
 plot_snow_forecast(weather_mud)
 ```
 
-```{r snow-forecast-strip}
-#| output: asis
-cat("<p><strong>Forecast snow conditions:</strong></p>")
-snow_forecast_strip(weather_mud)
-```
-
 ```{r nws-snow-forecast}
 if (nrow(nws) > 0)
   htmltools::tags$details(
@@ -479,7 +473,7 @@ plot_nordic_ski_index(weather_mud)
 
 ```{r snow-season-facets}
 #| fig-width: 8
-#| fig-height: 13
+#| fig-height: 19.5
 #| out-width: "100%"
 plot_snow_season_facets(weather_mud)
 ```

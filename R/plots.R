@@ -1212,37 +1212,7 @@ mud_forecast_strip <- function(weather_mud_df) {
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 9. Mini snowface strip: 7 small skiers for forecast days (htmltools)
-# ────────────────────────────────────────────────────────────────────────────
-snow_forecast_strip <- function(weather_df) {
-  forecast_rows <- weather_df |>
-    filter(source == "forecast", date >= Sys.Date()) |>
-    arrange(date) |>
-    slice_head(n = 7)
-
-  if (nrow(forecast_rows) == 0) return(htmltools::HTML(""))
-
-  day_divs <- purrr::pmap(forecast_rows, function(date, snow_condition_score, snow_condition_label, ...) {
-    face_svg <- make_snowface(snow_condition_score, size = "70px", label = FALSE)
-    htmltools::tags$div(
-      class = "tp-forecast-day",
-      htmltools::tags$span(class = "day-label", format(date, "%a")),
-      face_svg,
-      htmltools::tags$span(
-        class = "mud-label",
-        if (is.na(snow_condition_label)) "?" else snow_condition_label
-      )
-    )
-  })
-
-  htmltools::div(
-    class = "tp-hscroll",
-    htmltools::div(class = "tp-forecast-strip tp-forecast-strip--scroll", !!!day_divs)
-  )
-}
-
-# ────────────────────────────────────────────────────────────────────────────
-# 10. NWS forecast card strip (htmltools)
+# 9. NWS forecast card strip (htmltools)
 # ────────────────────────────────────────────────────────────────────────────
 nws_forecast_strip <- function(nws_df) {
   if (nrow(nws_df) == 0) return(htmltools::HTML(""))
