@@ -19,7 +19,7 @@ Data flows in automatically:
 - **Streamflow** — [USGS](https://waterdata.usgs.gov) gauge on the Buffalo River near Elma
 - **Forecast text** — [NWS](https://www.weather.gov)
 
-GitHub Actions rebuilds the site every morning at 4 AM Eastern so the report is fresh before you load the car. 
+GitHub Actions rebuilds the site twice daily (≈4 AM and ≈4 PM Eastern) so conditions stay fresh. 
 
 ## Adding a park
 

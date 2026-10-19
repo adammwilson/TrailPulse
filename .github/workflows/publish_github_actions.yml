@@ -5,8 +5,10 @@ on:
       - main
       - master
   schedule:
-    # Rebuild daily at 8 AM UTC (4 AM Eastern) for fresh data
+    # Morning rebuild: 08:00 UTC ≈ 04:00 Eastern
     - cron: '0 8 * * *'
+    # Afternoon rebuild: 20:00 UTC ≈ 16:00 Eastern (EDT) / 15:00 Eastern (EST)
+    - cron: '0 20 * * *'
 
 name: Quarto Publish
 

@@ -10,6 +10,7 @@ execute:
 website:
   google-analytics: "G-FHSPP71LBP"   # replace with your Measurement ID
   title: "TrailPulse"
+  site-url: https://adammwilson.github.io/TrailPulse
   description: "Live mud scores, snow conditions, and 7-day forecasts for local trails. Know before you go."
   favicon: img/favicon.png
   open-graph: true
