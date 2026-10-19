@@ -22,7 +22,8 @@
   }
 })();
 
-/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB */
+/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB
+   (R sets this for Dec–Mar via default_to_snow_tab(); Apr–Nov stays on Trail) */
 (function () {
   if (!window.TP_DEFAULT_SNOW_TAB) return;
   function activateSnowTab() {

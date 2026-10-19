@@ -62,9 +62,8 @@ if (is.null(weather_raw)) {
   snow_score_now <- coalesce(snow_summary$condition_score, 1.0)
   snow_label     <- coalesce(snow_summary$condition_label, "Avoid")
 
-  # Decide default tab: snow if in configured winter season or snow on ground
-  is_winter  <- is_snow_season(Sys.Date())
-  show_snow  <- is_winter | depth_cm > 2
+  # Decide default tab: Snow Dec–Mar; Trail Conditions Apr–Nov (see parks.yml)
+  show_snow <- default_to_snow_tab(Sys.Date())
 
   last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
 
