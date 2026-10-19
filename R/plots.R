@@ -1321,7 +1321,7 @@ plot_snow_season_facets <- function(weather_df,
       "Snowfall (red) & Snow Depth (grey) (cm)",
       name_in = "Snowfall / Depth (inches)"
     ) +
-    coord_fixed(ratio = 0.4) +
+    # Free aspect so panels grow with Quarto fig-height (coord_fixed left a tall empty frame).
     labs(
       x = "Date",
       title = glue(
