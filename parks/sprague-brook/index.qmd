@@ -446,20 +446,20 @@ if (!is.na(ski_pct)) {
 plot_cumulative_snowfall(weather_mud)
 ```
 
-#### Mean 7-Day Snowfall — All Seasons
+#### Median 7-Day Snowfall — All Seasons
 
 ```{r snowfall-7d-spaghetti}
 #| fig-width: 7
 #| out-width: "100%"
-plot_mean_7day_snowfall(weather_mud)
+plot_median_7day_snowfall(weather_mud)
 ```
 
-#### Mean 7-Day Snow Depth — All Seasons
+#### Median 7-Day Snow Depth — All Seasons
 
 ```{r snow-depth-7d-spaghetti}
 #| fig-width: 7
 #| out-width: "100%"
-plot_mean_7day_snow_depth(weather_mud)
+plot_median_7day_snow_depth(weather_mud)
 ```
 
 #### Peak Snow Depth by Winter

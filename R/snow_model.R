@@ -91,9 +91,9 @@ compute_peak_snow_depth <- function(weather_df,
     )
 }
 
-# ── Rolling 7-day mean snow depth (for spaghetti vs DOSS) ────────────────────
-# Returns snow_year, doss, date, mean_7d_depth_cm
-compute_mean_7day_snow_depth <- function(weather_df) {
+# ── Rolling 7-day median snow depth (for spaghetti vs DOSS) ──────────────────
+# Returns snow_year, doss, date, median_7d_depth_cm
+compute_median_7day_snow_depth <- function(weather_df) {
   weather_df |>
     filter(is_snow_season(date)) |>
     filter(is.na(source) | source != "forecast") |>
@@ -101,22 +101,22 @@ compute_mean_7day_snow_depth <- function(weather_df) {
     arrange(date) |>
     group_by(snow_year) |>
     mutate(
-      mean_7d_depth_cm = zoo::rollapply(
+      median_7d_depth_cm = zoo::rollapply(
         snow_depth,
         width = 7L,
-        FUN = mean,
+        FUN = median,
         na.rm = TRUE,
         partial = TRUE,
         align = "right"
       )
     ) |>
     ungroup() |>
-    select(snow_year, doss, date, mean_7d_depth_cm)
+    select(snow_year, doss, date, median_7d_depth_cm)
 }
 
-# ── Rolling 7-day mean daily snowfall (for spaghetti vs DOSS) ────────────────
-# Returns snow_year, doss, date, mean_7d_snowfall_cm
-compute_mean_7day_snowfall <- function(weather_df) {
+# ── Rolling 7-day median daily snowfall (for spaghetti vs DOSS) ──────────────
+# Returns snow_year, doss, date, median_7d_snowfall_cm
+compute_median_7day_snowfall <- function(weather_df) {
   weather_df |>
     filter(is_snow_season(date)) |>
     filter(is.na(source) | source != "forecast") |>
@@ -124,17 +124,17 @@ compute_mean_7day_snowfall <- function(weather_df) {
     arrange(date) |>
     group_by(snow_year) |>
     mutate(
-      mean_7d_snowfall_cm = zoo::rollapply(
+      median_7d_snowfall_cm = zoo::rollapply(
         snowfall,
         width = 7L,
-        FUN = mean,
+        FUN = median,
         na.rm = TRUE,
         partial = TRUE,
         align = "right"
       )
     ) |>
     ungroup() |>
-    select(snow_year, doss, date, mean_7d_snowfall_cm)
+    select(snow_year, doss, date, median_7d_snowfall_cm)
 }
 
 # ── Cumulative ski days by DOSS (depth >= park threshold) ────────────────────
