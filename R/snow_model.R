@@ -114,6 +114,44 @@ compute_mean_7day_snow_depth <- function(weather_df) {
     select(snow_year, doss, date, mean_7d_depth_cm)
 }
 
+# ── Rolling 7-day mean daily snowfall (for spaghetti vs DOSS) ────────────────
+# Returns snow_year, doss, date, mean_7d_snowfall_cm
+compute_mean_7day_snowfall <- function(weather_df) {
+  weather_df |>
+    filter(is_snow_season(date)) |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snowfall)) |>
+    arrange(date) |>
+    group_by(snow_year) |>
+    mutate(
+      mean_7d_snowfall_cm = zoo::rollapply(
+        snowfall,
+        width = 7L,
+        FUN = mean,
+        na.rm = TRUE,
+        partial = TRUE,
+        align = "right"
+      )
+    ) |>
+    ungroup() |>
+    select(snow_year, doss, date, mean_7d_snowfall_cm)
+}
+
+# ── Cumulative ski days by DOSS (depth >= park threshold) ────────────────────
+# Returns snow_year, doss, date, cum_ski_days
+compute_cumulative_ski_days <- function(weather_df,
+                                        threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
+  weather_df |>
+    filter(is_snow_season(date)) |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snow_depth)) |>
+    arrange(date) |>
+    group_by(snow_year) |>
+    mutate(cum_ski_days = cumsum(snow_depth >= threshold_cm)) |>
+    ungroup() |>
+    select(snow_year, doss, date, cum_ski_days)
+}
+
 # ── Daily snow-season series for year-by-year facet plot ─────────────────────
 # Obs only; includes ski-day flag at park threshold.
 compute_snow_season_daily <- function(weather_df,

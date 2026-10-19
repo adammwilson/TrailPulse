@@ -100,6 +100,9 @@ snow_level_color <- function(depth_cm) {
   SNOW_COLORS[snow_level_name(depth_cm)]
 }
 
+# ── Unit conversion ──────────────────────────────────────────────────────────
+CM_PER_INCH <- 2.54
+
 # ── Forecast window ──────────────────────────────────────────────────────────
 HISTORY_DAYS  <- 14L   # days of observed data to show in current-conditions charts
 FORECAST_DAYS <- 7L    # days of forecast to show

@@ -40,6 +40,20 @@
 .rollm <- function(x) zoo::rollapply(x, width = 45L, FUN = mean, na.rm = TRUE,
                                      partial = TRUE, align = "center")
 
+# ── Primary y in cm with secondary inches (÷ 2.54) ───────────────────────────
+.scale_y_cm_inches <- function(name_cm, name_in = "inches", ...) {
+  scale_y_continuous(
+    name = name_cm,
+    sec.axis = sec_axis(~ . / CM_PER_INCH, name = name_in),
+    ...
+  )
+}
+
+# Human-readable ski-depth threshold, e.g. "10 cm / 4 in"
+.threshold_cm_in_label <- function(threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
+  glue("{threshold_cm} cm / {round(threshold_cm / CM_PER_INCH)} in")
+}
+
 # ────────────────────────────────────────────────────────────────────────────
 # 1.  Current conditions + forecast — 4 compact shared-axis panels
 #     (a) Temperature   (b) Precipitation   (c) Soil Moisture (3 depths)
@@ -544,13 +558,17 @@ plot_snow_forecast <- function(weather_df, history_days = HISTORY_DAYS) {
              hjust = 1, size = 3, color = "#555") +
     scale_alpha_identity() +
     scale_y_continuous(
-      name      = "Snowfall (cm)",
-      sec.axis  = sec_axis(~ . * depth_scale / snow_scale, name = "Snow Depth (cm)")
+      name     = "Snowfall (cm)",
+      # Secondary shows snow depth in inches (same dual-metric layout, imperial)
+      sec.axis = sec_axis(
+        ~ . * depth_scale / snow_scale / CM_PER_INCH,
+        name = "Snow Depth (inches)"
+      )
     ) +
     scale_x_date(date_breaks = "2 days", date_labels = "%b %d") +
     labs(
       x = NULL,
-      caption = "Bars = daily snowfall (light = forecast). Line = snow depth on ground."
+      caption = "Bars = daily snowfall in cm (light = forecast). Line = snow depth (inches on right)."
     ) +
     theme_trailpulse() +
     theme(
@@ -940,7 +958,8 @@ plot_cumulative_snowfall <- function(weather_df) {
             geom_line(data = cur_line, aes(group = NULL),
                       color = "#d44000", linewidth = 1.2)} +
         scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-        labs(x = NULL, y = "Cumulative Snowfall (cm)",
+        .scale_y_cm_inches("Cumulative Snowfall (cm)") +
+        labs(x = NULL,
              caption = glue("Winter season {SNOW_SEASON_LABEL}. Data for {PARK_NAME} \u2014 TrailPulse")) +
         theme_trailpulse()
     )
@@ -956,7 +975,8 @@ plot_cumulative_snowfall <- function(weather_df) {
     geom_line(data = cur_line, aes(y = cum_snowfall_cm),
               color = "#d44000", linewidth = 1.2) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-    labs(x = NULL, y = "Cumulative Snowfall (cm)",
+    .scale_y_cm_inches("Cumulative Snowfall (cm)") +
+    labs(x = NULL,
          caption = glue("Bold Line: {today_sy}\u2013{today_sy + 1} ({SNOW_SEASON_LABEL}) \u2022 Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\nData for {PARK_NAME} from OpenMeteo, USGS, and NWS collated by TrailPulse")) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
@@ -983,9 +1003,9 @@ plot_snow_depth_history <- function(weather_df) {
       aes(label = glue("{round(peak_depth_cm)} cm")),
       vjust = -0.5, size = 3.5, color = "#1e88e5", fontface = "bold"
     ) +
+    .scale_y_cm_inches("Peak Snow Depth (cm)") +
     labs(
       x = glue("Snow Season (year starting {month.abb[SNOW_START_MONTH]})"),
-      y = "Peak Snow Depth (cm)",
       title = "Peak Snow Depth by Winter"
     ) +
     theme_trailpulse() +
@@ -998,6 +1018,7 @@ plot_snow_depth_history <- function(weather_df) {
 plot_nordic_ski_index <- function(weather_df,
                                   threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
   today_sy <- current_snow_year()
+  thr_lab  <- .threshold_cm_in_label(threshold_cm)
   idx <- compute_nordic_ski_index(weather_df, threshold_cm = threshold_cm) |>
     filter(snow_year >= year(WEATHER_START))
 
@@ -1017,9 +1038,12 @@ plot_nordic_ski_index <- function(weather_df,
     ) +
     labs(
       x = glue("Snow Season (year starting {month.abb[SNOW_START_MONTH]})"),
-      y = glue("Cumulative ski days (\u2265{threshold_cm} cm)"),
-      title = glue("Cumulative Ski Days (\u2265{threshold_cm} cm depth)"),
-      caption = glue("Winter season {SNOW_SEASON_LABEL}. Count of days with mean snow depth \u2265 {threshold_cm} cm.")
+      y = glue("Cumulative ski days (\u2265{thr_lab})"),
+      title = glue("Cumulative Ski Days (\u2265{thr_lab} depth)"),
+      caption = glue(
+        "Winter season {SNOW_SEASON_LABEL}. ",
+        "Count of days with mean snow depth \u2265 {thr_lab}."
+      )
     ) +
     theme_trailpulse() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
@@ -1061,8 +1085,8 @@ plot_mean_7day_snow_depth <- function(weather_df) {
             geom_line(data = cur_line, aes(group = NULL),
                       color = "#d44000", linewidth = 1.2)} +
         scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-        scale_y_continuous(limits = c(0, NA)) +
-        labs(x = NULL, y = "Mean 7-day snow depth (cm)",
+        .scale_y_cm_inches("Mean 7-day snow depth (cm)", limits = c(0, NA)) +
+        labs(x = NULL,
              caption = glue("Winter season {SNOW_SEASON_LABEL}. Data for {PARK_NAME} \u2014 TrailPulse")) +
         theme_trailpulse()
     )
@@ -1078,14 +1102,151 @@ plot_mean_7day_snow_depth <- function(weather_df) {
     geom_line(data = cur_line, aes(y = mean_7d_depth_cm),
               color = "#d44000", linewidth = 1.2) +
     scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-    scale_y_continuous(limits = c(0, NA)) +
+    .scale_y_cm_inches("Mean 7-day snow depth (cm)", limits = c(0, NA)) +
     labs(
       x = NULL,
-      y = "Mean 7-day snow depth (cm)",
       caption = glue(
         "Bold Line: {today_sy}\u2013{today_sy + 1} ({SNOW_SEASON_LABEL}) \u2022 ",
         "Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\n",
         "Rolling 7-day mean of daily snow depth. Data for {PARK_NAME} from OpenMeteo collated by TrailPulse"
+      )
+    ) +
+    theme_trailpulse() +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
+          plot.caption = element_text(size = 7, color = "grey50", hjust = 0))
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7c2. Mean 7-day snowfall — all seasons spaghetti + quantile ribbons
+# ────────────────────────────────────────────────────────────────────────────
+plot_mean_7day_snowfall <- function(weather_df) {
+  today_sy <- current_snow_year()
+  origin   <- make_date(2000L, SNOW_START_MONTH, SNOW_START_DAY)
+
+  snow7 <- compute_mean_7day_snowfall(weather_df) |>
+    mutate(plot_date = origin + doss - 1L)
+
+  hist_quants <- snow7 |>
+    filter(snow_year < today_sy) |>
+    group_by(doss, plot_date) |>
+    summarise(
+      p05 = quantile(mean_7d_snowfall_cm, 0.05, na.rm = TRUE),
+      p25 = quantile(mean_7d_snowfall_cm, 0.25, na.rm = TRUE),
+      p50 = quantile(mean_7d_snowfall_cm, 0.50, na.rm = TRUE),
+      p75 = quantile(mean_7d_snowfall_cm, 0.75, na.rm = TRUE),
+      p95 = quantile(mean_7d_snowfall_cm, 0.95, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    arrange(doss) |>
+    mutate(across(c(p05, p25, p50, p75, p95), .rollm))
+
+  hist_lines <- snow7 |> filter(snow_year < today_sy)
+  cur_line   <- snow7 |> filter(snow_year == today_sy)
+
+  if (nrow(hist_quants) == 0) {
+    return(
+      ggplot(snow7, aes(x = plot_date, y = mean_7d_snowfall_cm, group = snow_year)) +
+        geom_line(color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+        {if (nrow(cur_line) > 0)
+            geom_line(data = cur_line, aes(group = NULL),
+                      color = "#d44000", linewidth = 1.2)} +
+        scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+        .scale_y_cm_inches("Mean 7-day snowfall (cm)", limits = c(0, NA)) +
+        labs(x = NULL,
+             caption = glue("Winter season {SNOW_SEASON_LABEL}. Data for {PARK_NAME} \u2014 TrailPulse")) +
+        theme_trailpulse()
+    )
+  }
+
+  ggplot(hist_quants, aes(x = plot_date)) +
+    geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#ddd0ce", alpha = 0.50) +
+    geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
+    geom_line(data = hist_lines,
+              aes(y = mean_7d_snowfall_cm, group = snow_year),
+              color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+    geom_line(aes(y = p50), color = "#555555", linewidth = 0.9) +
+    geom_line(data = cur_line, aes(y = mean_7d_snowfall_cm),
+              color = "#d44000", linewidth = 1.2) +
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+    .scale_y_cm_inches("Mean 7-day snowfall (cm)", limits = c(0, NA)) +
+    labs(
+      x = NULL,
+      caption = glue(
+        "Bold Line: {today_sy}\u2013{today_sy + 1} ({SNOW_SEASON_LABEL}) \u2022 ",
+        "Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\n",
+        "Rolling 7-day mean of daily snowfall (not cumulative). ",
+        "Data for {PARK_NAME} from OpenMeteo collated by TrailPulse"
+      )
+    ) +
+    theme_trailpulse() +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 8),
+          plot.caption = element_text(size = 7, color = "grey50", hjust = 0))
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7c3. Cumulative ski days — all seasons spaghetti + quantile ribbons
+# ────────────────────────────────────────────────────────────────────────────
+plot_cumulative_ski_days <- function(weather_df,
+                                     threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
+  today_sy <- current_snow_year()
+  origin   <- make_date(2000L, SNOW_START_MONTH, SNOW_START_DAY)
+  thr_lab  <- .threshold_cm_in_label(threshold_cm)
+
+  cum_ski <- compute_cumulative_ski_days(weather_df, threshold_cm = threshold_cm) |>
+    mutate(plot_date = origin + doss - 1L)
+
+  hist_quants <- cum_ski |>
+    filter(snow_year < today_sy) |>
+    group_by(doss, plot_date) |>
+    summarise(
+      p05 = quantile(cum_ski_days, 0.05, na.rm = TRUE),
+      p25 = quantile(cum_ski_days, 0.25, na.rm = TRUE),
+      p50 = quantile(cum_ski_days, 0.50, na.rm = TRUE),
+      p75 = quantile(cum_ski_days, 0.75, na.rm = TRUE),
+      p95 = quantile(cum_ski_days, 0.95, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  hist_lines <- cum_ski |> filter(snow_year < today_sy)
+  cur_line   <- cum_ski |> filter(snow_year == today_sy)
+
+  if (nrow(hist_quants) == 0) {
+    return(
+      ggplot(cum_ski, aes(x = plot_date, y = cum_ski_days, group = snow_year)) +
+        geom_line(color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+        {if (nrow(cur_line) > 0)
+            geom_line(data = cur_line, aes(group = NULL),
+                      color = "#d44000", linewidth = 1.2)} +
+        scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+        scale_y_continuous(limits = c(0, NA)) +
+        labs(
+          x = NULL,
+          y = glue("Cumulative ski days (\u2265{thr_lab})"),
+          caption = glue("Winter season {SNOW_SEASON_LABEL}. Data for {PARK_NAME} \u2014 TrailPulse")
+        ) +
+        theme_trailpulse()
+    )
+  }
+
+  ggplot(hist_quants, aes(x = plot_date)) +
+    geom_ribbon(aes(ymin = p05, ymax = p95), fill = "#ddd0ce", alpha = 0.50) +
+    geom_ribbon(aes(ymin = p25, ymax = p75), fill = "#c09898", alpha = 0.60) +
+    geom_line(data = hist_lines,
+              aes(y = cum_ski_days, group = snow_year),
+              color = "#c8c8c8", linewidth = 0.3, alpha = 0.5) +
+    geom_line(aes(y = p50), color = "#555555", linewidth = 0.9) +
+    geom_line(data = cur_line, aes(y = cum_ski_days),
+              color = "#d44000", linewidth = 1.2) +
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+    scale_y_continuous(limits = c(0, NA)) +
+    labs(
+      x = NULL,
+      y = glue("Cumulative ski days (\u2265{thr_lab})"),
+      caption = glue(
+        "Bold Line: {today_sy}\u2013{today_sy + 1} ({SNOW_SEASON_LABEL}) \u2022 ",
+        "Line: Long-term Median \u2022 Bands: Long-term 5\u201395th & 25\u201375th Percentile.\n",
+        "Days with mean snow depth \u2265 {thr_lab}. ",
+        "Data for {PARK_NAME} from OpenMeteo collated by TrailPulse"
       )
     ) +
     theme_trailpulse() +
@@ -1105,6 +1266,7 @@ plot_snow_season_facets <- function(weather_df,
   # Anchor calendar like hunters_creek (2020–21); only month/day matter
   season_start <- make_date(2020L, SNOW_START_MONTH, SNOW_START_DAY)
   season_stop  <- make_date(2021L, SNOW_END_MONTH, SNOW_END_DAY)
+  thr_lab      <- .threshold_cm_in_label(threshold_cm)
 
   daily <- weather_df |>
     filter(is.na(source) | source != "forecast") |>
@@ -1155,19 +1317,19 @@ plot_snow_season_facets <- function(weather_df,
       aes(x = sdate, y = y_label, label = label),
       size = 2
     ) +
-    scale_y_continuous(
-      sec.axis = sec_axis(~ . * 0.033, name = "Snowfall / Depth (feet)")
+    .scale_y_cm_inches(
+      "Snowfall (red) & Snow Depth (grey) (cm)",
+      name_in = "Snowfall / Depth (inches)"
     ) +
     coord_fixed(ratio = 0.4) +
     labs(
       x = "Date",
-      y = "Snowfall (red) & Snow Depth (grey) (cm)",
       title = glue(
         "Snowfall and Snow Depth ({year(WEATHER_START)}\u2013present, {PARK_NAME})"
       ),
       subtitle = glue(
         "Red = daily snowfall, grey = snow depth. ",
-        "Blue dots = days with depth \u2265 {threshold_cm} cm (cumulative ski days). ",
+        "Blue dots = days with depth \u2265 {thr_lab} (cumulative ski days). ",
         "Winter season {SNOW_SEASON_LABEL}."
       )
     ) +
@@ -1212,37 +1374,7 @@ mud_forecast_strip <- function(weather_mud_df) {
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 9. Mini snowface strip: 7 small skiers for forecast days (htmltools)
-# ────────────────────────────────────────────────────────────────────────────
-snow_forecast_strip <- function(weather_df) {
-  forecast_rows <- weather_df |>
-    filter(source == "forecast", date >= Sys.Date()) |>
-    arrange(date) |>
-    slice_head(n = 7)
-
-  if (nrow(forecast_rows) == 0) return(htmltools::HTML(""))
-
-  day_divs <- purrr::pmap(forecast_rows, function(date, snow_condition_score, snow_condition_label, ...) {
-    face_svg <- make_snowface(snow_condition_score, size = "70px", label = FALSE)
-    htmltools::tags$div(
-      class = "tp-forecast-day",
-      htmltools::tags$span(class = "day-label", format(date, "%a")),
-      face_svg,
-      htmltools::tags$span(
-        class = "mud-label",
-        if (is.na(snow_condition_label)) "?" else snow_condition_label
-      )
-    )
-  })
-
-  htmltools::div(
-    class = "tp-hscroll",
-    htmltools::div(class = "tp-forecast-strip tp-forecast-strip--scroll", !!!day_divs)
-  )
-}
-
-# ────────────────────────────────────────────────────────────────────────────
-# 10. NWS forecast card strip (htmltools)
+# 9. NWS forecast card strip (htmltools)
 # ────────────────────────────────────────────────────────────────────────────
 nws_forecast_strip <- function(nws_df) {
   if (nrow(nws_df) == 0) return(htmltools::HTML(""))

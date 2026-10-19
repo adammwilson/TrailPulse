@@ -34,7 +34,7 @@ parks:
       start_day: 1
       end_month: 5
       end_day: 31
-    nordic_ski_threshold_cm: 5   # cumulative ski day = snow_depth >= this (cm)
+    nordic_ski_threshold_cm: 10  # cumulative ski day = snow_depth >= this (cm); 10 cm ≈ 4 in
 
   - id: sprague-brook
     name: Sprague Brook Park
@@ -70,4 +70,4 @@ parks:
       start_day: 1
       end_month: 5
       end_day: 31
-    nordic_ski_threshold_cm: 5
+    nordic_ski_threshold_cm: 10  # 10 cm ≈ 4 in
