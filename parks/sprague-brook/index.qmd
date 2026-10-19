@@ -373,16 +373,16 @@ cat(glue('<p style="margin:0">{snow_one}</p>'))
 # ── Stat boxes ──
 cat('<div class="tp-stat-row">')
 cat(glue('<div class="tp-stat-box">',
-         '<div class="stat-value">{round(depth_cm)} cm / {round(depth_cm * 0.394, 1)} in</div>',
+         '<div class="stat-value">{round(depth_cm)} cm / {round(depth_cm / CM_PER_INCH, 1)} in</div>',
          '<div class="stat-label">Snow Depth Now</div>',
          '</div>'))
 cat(glue('<div class="tp-stat-box">',
-         '<div class="stat-value">{round(total_snow_this_season)} cm / {round(total_snow_this_season * 0.394, 1)} in</div>',
+         '<div class="stat-value">{round(total_snow_this_season)} cm / {round(total_snow_this_season / CM_PER_INCH, 1)} in</div>',
          '<div class="stat-label">Season Total</div>',
          '</div>'))
 cat(glue('<div class="tp-stat-box">',
          '<div class="stat-value">{skiable_days_so_far}</div>',
-         '<div class="stat-label">Cumulative Ski Days (≥{ski_threshold_cm} cm)</div>',
+         '<div class="stat-label">Cumulative Ski Days (≥{ski_threshold_cm} cm / {round(ski_threshold_cm / CM_PER_INCH)} in)</div>',
          '</div>'))
 if (isTRUE(snow_summary$skiable_partial_data)) {
   cat('<p style="font-size:0.75em;color:#888;margin:0.25rem 0 0;">Cumulative ski-day count may be partial (depth coverage &lt; 80% of season so far).</p>')
@@ -429,9 +429,10 @@ if (!is.na(pct)) {
 ski_pct <- snow_summary$skiable_pct_rank
 ski_n   <- snow_summary$skiable_days_so_far
 ski_thr <- snow_summary$skiable_threshold_cm %||% NORDIC_SKI_THRESHOLD_CM
+ski_thr_in <- round(ski_thr / CM_PER_INCH)
 if (!is.na(ski_pct)) {
   cat(glue('<div class="tp-percentile" style="margin-bottom:1rem;">',
-           '{ski_n} cumulative ski days (≥{ski_thr} cm) so far — more than ',
+           '{ski_n} cumulative ski days (≥{ski_thr} cm / {ski_thr_in} in) so far — more than ',
            '<strong>{ski_pct}%</strong> of seasons by this date.',
            '</div>'))
 }
@@ -443,6 +444,14 @@ if (!is.na(ski_pct)) {
 #| fig-width: 7
 #| out-width: "100%"
 plot_cumulative_snowfall(weather_mud)
+```
+
+#### Mean 7-Day Snowfall — All Seasons
+
+```{r snowfall-7d-spaghetti}
+#| fig-width: 7
+#| out-width: "100%"
+plot_mean_7day_snowfall(weather_mud)
 ```
 
 #### Mean 7-Day Snow Depth — All Seasons
@@ -459,6 +468,14 @@ plot_mean_7day_snow_depth(weather_mud)
 #| fig-width: 7
 #| out-width: "100%"
 plot_snow_depth_history(weather_mud)
+```
+
+#### Cumulative Ski Days — All Seasons
+
+```{r ski-days-spaghetti}
+#| fig-width: 7
+#| out-width: "100%"
+plot_cumulative_ski_days(weather_mud)
 ```
 
 #### Cumulative Ski Days by Winter
@@ -507,7 +524,7 @@ observations — treat scores as estimates, especially near level boundaries.
 
 Winter stats use the park snow season from `data/parks.yml` (default **Sep–May**).
 A **ski day** counts toward **cumulative ski days** when daily mean snow depth is
-at or above the park threshold (default **5 cm**, park-configurable). Condition
+at or above the park threshold (default **10 cm / 4 in**, park-configurable). Condition
 labels use the Avoid→Great snow-score scale (Good typically needs ~10+ cm). Season
 labels use the September start year (e.g. 2024–25).
 :::

@@ -42,7 +42,7 @@ SNOW_START_MONTH <- park$snow_season$start_month %||% 9
 SNOW_START_DAY   <- park$snow_season$start_day   %||% 1
 SNOW_END_MONTH   <- park$snow_season$end_month   %||% 5
 SNOW_END_DAY     <- park$snow_season$end_day     %||% 31
-NORDIC_SKI_THRESHOLD_CM <- park$nordic_ski_threshold_cm %||% 5
+NORDIC_SKI_THRESHOLD_CM <- park$nordic_ski_threshold_cm %||% 10
 PARK_BOUNDARY    <- park$boundary_file %||% NULL
 PARK_ID          <- park$id
 
