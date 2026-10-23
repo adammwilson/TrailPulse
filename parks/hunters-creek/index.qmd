@@ -89,6 +89,13 @@ if (is.null(weather_raw)) {
   card_mode <- og_card_mode(Sys.Date(), depth_cm)
   card_score <- if (identical(card_mode, "snow")) snow_score_now else mud_score_now
 
+  # Short-window series (yesterday → +2 days) for OG + park heroes
+  trail_series <- short_window_score_series(weather_mud, mode = "trail")
+  snow_series  <- short_window_score_series(weather_mud, mode = "snow")
+  card_series  <- if (identical(card_mode, "snow")) snow_series else trail_series
+  save_short_window_score(trail_series, "short-window-trail.png")
+  save_short_window_score(snow_series,  "short-window-snow.png")
+
   # 3-day mud forecast summary
   fc_rows <- weather_mud |>
     filter(date > Sys.Date(), date <= Sys.Date() + 3, source == "forecast")
@@ -113,6 +120,7 @@ if (is.null(weather_raw)) {
     location         = park$location,
     mode             = card_mode,
     condition_score  = card_score,
+    score_series     = card_series,
     temp_high_f      = temp_high_f,
     temp_low_f       = temp_low_f,
     precip_7d_mm     = precip_7d,
@@ -173,13 +181,10 @@ precip_7d <- weather_mud |>
   round(1)
 temp_today <- coalesce(today_row$temp_max, NA_real_)
 
-# Render card
+# Render card — short-window graph replaces cartoon mudface
 cat('<div class="tp-condition-card">')
 
-# ── Main row: face + score ──
 cat('<div class="tp-condition-main">')
-# Face is secondary to score/label (score-forward hero)
-cat(as.character(make_mudface(mud_score_now, size = "112px", label = FALSE, temp_c = today_row$temp_max)))
 cat('<div class="tp-score-col">')
 cat(glue(
   '<div class="tp-score-header">',
@@ -196,12 +201,20 @@ cat(glue(
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
 
+if (file.exists("short-window-trail.png")) {
+  cat(paste0(
+    '<img class="tp-short-window" src="short-window-trail.png" ',
+    'alt="TrailPulse short-window score: yesterday through +2 days" ',
+    'width="720" height="290" loading="lazy" />'
+  ))
+}
+
 # ── One-liner description ──
 cat(glue('<p style="margin:0">{oneliner}</p>'))
 
 # ── Context row: forecast trend ──
 if (exists("forecast_summary") && nchar(forecast_summary) > 0) {
-  cat(glue('<div class="tp-context-row">\U0001F4C8 7-day forecast: {forecast_summary}</div>'))
+  cat(glue('<div class="tp-context-row">7-day forecast: {forecast_summary}</div>'))
 }
 
 # ── Stat boxes ──
@@ -355,13 +368,10 @@ total_snow_this_season <- coalesce(snow_summary$cum_snowfall_cm, 0)
 skiable_days_so_far    <- coalesce(snow_summary$skiable_days_so_far, 0L)
 ski_threshold_cm       <- snow_summary$skiable_threshold_cm %||% NORDIC_SKI_THRESHOLD_CM
 
-# Render card
+# Render card — short-window graph replaces cartoon snowface
 cat('<div class="tp-condition-card">')
 
-# ── Main row: face + score ──
 cat('<div class="tp-condition-main">')
-# Face is secondary to score/label (score-forward hero)
-cat(as.character(make_snowface(snow_score_now, size = "112px", label = FALSE)))
 cat('<div class="tp-score-col">')
 cat(glue(
   '<div class="tp-score-header">',
@@ -377,6 +387,14 @@ cat(glue(
 ))
 cat('</div>')  # score-col
 cat('</div>')  # condition-main
+
+if (file.exists("short-window-snow.png")) {
+  cat(paste0(
+    '<img class="tp-short-window" src="short-window-snow.png" ',
+    'alt="TrailPulse short-window snow score: yesterday through +2 days" ',
+    'width="720" height="290" loading="lazy" />'
+  ))
+}
 
 # ── One-liner description ──
 cat(glue('<p style="margin:0">{snow_one}</p>'))
