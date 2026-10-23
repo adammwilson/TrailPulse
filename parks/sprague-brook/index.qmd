@@ -22,6 +22,7 @@ source("../../R/fetch_nws.R")
 source("../../R/mud_model.R")
 source("../../R/condition.R")
 source("../../R/snow_model.R")
+source("../../R/bayes_trends.R")
 source("../../R/plots.R")
 source("../../R/mudface.R")
 source("../../R/snowface.R")
@@ -62,9 +63,8 @@ if (is.null(weather_raw)) {
   snow_score_now <- coalesce(snow_summary$condition_score, 1.0)
   snow_label     <- coalesce(snow_summary$condition_label, "Avoid")
 
-  # Decide default tab: snow if in configured winter season or snow on ground
-  is_winter  <- is_snow_season(Sys.Date())
-  show_snow  <- is_winter | depth_cm > 2
+  # Default tab: Snow Dec–Mar, or snow on ground outside that window; else Trail
+  show_snow <- default_to_snow_tab(Sys.Date(), depth_cm)
 
   last_updated <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z", tz = PARK_TZ)
 
@@ -320,6 +320,17 @@ if (!is.null(evi_data) && nrow(evi_data) > 0) {
 }
 ```
 
+### Historical Trends
+
+Annual trail metrics by **calendar year**: days at Good (`r paste0("[", CONDITION_BREAKS[2], ", ", CONDITION_BREAKS[3], ")")`) and Great (`r paste0("\u2265", CONDITION_BREAKS[3])`) scores, mean JJA soil moisture, and the first/last dates of runs with score > 6 for ≥7 consecutive days. Trends use **brms** Bayesian linear (`y ~ year`) and spline (`y ~ s(year)`) fits with 95% credible intervals.
+
+```{r historical-trail-trends}
+#| fig-width: 8
+#| fig-height: 10
+#| out-width: "100%"
+plot_historical_trail_trends(weather_mud)
+```
+
 ## ❄️ Snow & Winter
 
 ```{r snow-hero}
@@ -462,28 +473,12 @@ plot_mean_7day_snowfall(weather_mud)
 plot_mean_7day_snow_depth(weather_mud)
 ```
 
-#### Peak Snow Depth by Winter
-
-```{r snow-depth-history}
-#| fig-width: 7
-#| out-width: "100%"
-plot_snow_depth_history(weather_mud)
-```
-
 #### Cumulative Ski Days — All Seasons
 
 ```{r ski-days-spaghetti}
 #| fig-width: 7
 #| out-width: "100%"
 plot_cumulative_ski_days(weather_mud)
-```
-
-#### Cumulative Ski Days by Winter
-
-```{r nordic-ski-index}
-#| fig-width: 7
-#| out-width: "100%"
-plot_nordic_ski_index(weather_mud)
 ```
 
 #### Snow Depth & Snowfall by Winter
@@ -493,6 +488,20 @@ plot_nordic_ski_index(weather_mud)
 #| fig-height: 14
 #| out-width: "100%"
 plot_snow_season_facets(weather_mud)
+```
+
+### Historical Trends
+
+Peak snow depth and cumulative ski days by winter season
+(`r SNOW_SEASON_LABEL`), with Bayesian **brms** linear (`y ~ year`) and spline
+(`y ~ s(year)`) trends (95% credible intervals). Current incomplete season is
+shown as a point but excluded from the smooths.
+
+```{r historical-ski-trends}
+#| fig-width: 8
+#| fig-height: 7
+#| out-width: "100%"
+plot_historical_ski_trends(weather_mud)
 ```
 
 :::

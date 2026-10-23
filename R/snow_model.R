@@ -47,6 +47,31 @@ is_snow_season <- function(date) {
   }
 }
 
+# ── UI default tab (parks.yml default_snow_tab + snow on ground) ─────────────
+# Snow tab when inside the configured window (default Dec 1–Mar 31), OR when
+# snow is on the ground (>2 cm) outside that window. Otherwise Trail.
+# Separate from is_snow_season() which drives Nordic / seasonal stats (Sep–May).
+.in_default_snow_tab_window <- function(date = Sys.Date()) {
+  m <- month(date)
+  d <- day(date)
+  after_start <- m > DEFAULT_SNOW_TAB_START_MONTH |
+    (m == DEFAULT_SNOW_TAB_START_MONTH & d >= DEFAULT_SNOW_TAB_START_DAY)
+  before_end <- m < DEFAULT_SNOW_TAB_END_MONTH |
+    (m == DEFAULT_SNOW_TAB_END_MONTH & d <= DEFAULT_SNOW_TAB_END_DAY)
+
+  if (DEFAULT_SNOW_TAB_START_MONTH > DEFAULT_SNOW_TAB_END_MONTH) {
+    after_start | before_end
+  } else {
+    after_start & before_end
+  }
+}
+
+default_to_snow_tab <- function(date = Sys.Date(), snow_depth_cm = 0) {
+  depth <- suppressWarnings(as.numeric(snow_depth_cm[[1]]))
+  has_snow <- !is.na(depth) && depth > 2
+  isTRUE(.in_default_snow_tab_window(date)[[1]]) || has_snow
+}
+
 current_snow_year <- function(date = Sys.Date()) {
   assign_snow_year(date)[[1]]
 }
