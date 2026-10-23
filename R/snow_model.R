@@ -221,6 +221,112 @@ compute_nordic_ski_index <- function(weather_df,
     )
 }
 
+# ── Historical Trends: annual snow-season metrics ────────────────────────────
+# Season = park snow season (default Sep–May). Obs only (no forecast).
+
+# Season-total snowfall (cm)
+compute_season_total_snowfall <- function(weather_df) {
+  weather_df |>
+    filter(is_snow_season(date)) |>
+    filter(is.na(source) | source != "forecast") |>
+    group_by(snow_year) |>
+    summarise(
+      total_snowfall_cm = sum(coalesce(snowfall, 0), na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    filter(snow_year >= year(WEATHER_START))
+}
+
+# Days with snow on the ground: snow_depth > 0 (not ski-threshold days).
+# Distinct from cumulative ski days (depth ≥ park Nordic threshold).
+compute_days_with_snow <- function(weather_df, epsilon_cm = 0) {
+  weather_df |>
+    filter(is_snow_season(date)) |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snow_depth)) |>
+    group_by(snow_year) |>
+    summarise(
+      days_with_snow = sum(snow_depth > epsilon_cm, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    filter(snow_year >= year(WEATHER_START))
+}
+
+# Mean snow depth Dec–Mar (DJFM) within each snow year
+# (Dec of start year through Mar of start year + 1).
+compute_mean_depth_djfm <- function(weather_df) {
+  weather_df |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snow_depth)) |>
+    mutate(
+      m = month(date),
+      # Assign Dec–Mar days to the snow year that owns that winter
+      snow_year = if_else(m >= 12L, year(date), year(date) - 1L)
+    ) |>
+    filter(m %in% c(12L, 1L, 2L, 3L)) |>
+    group_by(snow_year) |>
+    summarise(
+      mean_djfm_depth_cm = mean(snow_depth, na.rm = TRUE),
+      n_djfm_days = n(),
+      .groups = "drop"
+    ) |>
+    filter(snow_year >= year(WEATHER_START))
+}
+
+# White Holidays: mean snow depth Dec 25 – Jan 2 (inclusive) for snow year W
+# (Dec 25 W through Jan 2 W+1).
+compute_white_holidays_depth <- function(weather_df) {
+  weather_df |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snow_depth)) |>
+    mutate(
+      md = month(date) * 100L + day(date),
+      # Dec 25–31 → snow year = calendar year; Jan 1–2 → prior calendar year
+      in_window = (md >= 1225L & md <= 1231L) | (md >= 101L & md <= 102L),
+      snow_year = if_else(month(date) == 12L, year(date), year(date) - 1L)
+    ) |>
+    filter(in_window) |>
+    group_by(snow_year) |>
+    summarise(
+      mean_white_holidays_cm = mean(snow_depth, na.rm = TRUE),
+      n_white_days = n(),
+      .groups = "drop"
+    ) |>
+    filter(snow_year >= year(WEATHER_START))
+}
+
+# First / last day of snow season with depth > threshold_cm (default 10 cm).
+# Returns day-of-snow-season (doss) so ribbons stay contiguous across the
+# calendar-year boundary (Sep–May seasons).
+# Adam: use 10 cm for this metric (matches park Nordic default when already 10).
+compute_snow_cover_bounds <- function(weather_df, threshold_cm = 10) {
+  weather_df |>
+    filter(is_snow_season(date)) |>
+    filter(is.na(source) | source != "forecast") |>
+    filter(!is.na(snow_depth)) |>
+    filter(snow_year >= year(WEATHER_START)) |>
+    group_by(snow_year) |>
+    summarise(
+      first_doss = {
+        hit <- which(snow_depth > threshold_cm)
+        if (length(hit)) as.integer(doss[min(hit)]) else NA_integer_
+      },
+      last_doss = {
+        hit <- which(snow_depth > threshold_cm)
+        if (length(hit)) as.integer(doss[max(hit)]) else NA_integer_
+      },
+      first_date = {
+        hit <- which(snow_depth > threshold_cm)
+        if (length(hit)) date[min(hit)] else as.Date(NA)
+      },
+      last_date = {
+        hit <- which(snow_depth > threshold_cm)
+        if (length(hit)) date[max(hit)] else as.Date(NA)
+      },
+      .groups = "drop"
+    )
+}
+
 # ── Current season summary ───────────────────────────────────────────────────
 current_snow_summary <- function(weather_df,
                                  threshold_cm = NORDIC_SKI_THRESHOLD_CM) {

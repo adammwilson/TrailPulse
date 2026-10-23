@@ -322,7 +322,7 @@ if (!is.null(evi_data) && nrow(evi_data) > 0) {
 
 ### Historical Trends
 
-Annual trail metrics by **calendar year**: days at Good (`r paste0("[", CONDITION_BREAKS[2], ", ", CONDITION_BREAKS[3], ")")`) and Great (`r paste0("\u2265", CONDITION_BREAKS[3])`) scores, mean JJA soil moisture, and the first/last dates of runs with score > 6 for ≥7 consecutive days. Trends use **brms** Bayesian linear (`y ~ year`) and spline (`y ~ s(year)`) fits with 95% credible intervals.
+Annual trail metrics by **calendar year**: days at Good (`r paste0("[", CONDITION_BREAKS[2], ", ", CONDITION_BREAKS[3], ")")`) and Great (`r paste0("\u2265", CONDITION_BREAKS[3])`) scores (ribbon between the two counts), mean JJA soil moisture, and the first/last dates of runs with score > 6 for ≥7 consecutive days (ribbon spanning first→last day-of-year). Trends use a **brms** Bayesian smooth (`y ~ s(year)`) with 95% credible intervals — no linear regression overlay.
 
 ```{r historical-trail-trends}
 #| fig-width: 8
@@ -492,14 +492,16 @@ plot_snow_season_facets(weather_mud)
 
 ### Historical Trends
 
-Peak snow depth and cumulative ski days by winter season
-(`r SNOW_SEASON_LABEL`), with Bayesian **brms** linear (`y ~ year`) and spline
-(`y ~ s(year)`) trends (95% credible intervals). Current incomplete season is
-shown as a point but excluded from the smooths.
+Winter-season (`r SNOW_SEASON_LABEL`) annual metrics with a Bayesian **brms**
+smooth (`y ~ s(year)`, 95% CrI) only — no linear regression. Panels (top→bottom):
+total snowfall; days with snow on the ground (depth > 0); cumulative ski days
+(≥ park threshold); peak depth; mean DJFM (Dec–Mar) depth; White Holidays mean
+depth (Dec 25–Jan 2); first→last day with snow > 10 cm (ribbon). Current
+incomplete season is shown as a point but excluded from the smooths.
 
 ```{r historical-ski-trends}
 #| fig-width: 8
-#| fig-height: 7
+#| fig-height: 22
 #| out-width: "100%"
 plot_historical_ski_trends(weather_mud)
 ```
@@ -532,8 +534,11 @@ observations — treat scores as estimates, especially near level boundaries.
 ### About Snow & Cumulative Ski Days
 
 Winter stats use the park snow season from `data/parks.yml` (default **Sep–May**).
+A **day with snow** (Historical Trends) is any day with mean snow depth **> 0 cm**.
 A **ski day** counts toward **cumulative ski days** when daily mean snow depth is
-at or above the park threshold (default **10 cm / 4 in**, park-configurable). Condition
-labels use the Avoid→Great snow-score scale (Good typically needs ~10+ cm). Season
-labels use the September start year (e.g. 2024–25).
+at or above the park threshold (default **10 cm / 4 in**, park-configurable).
+**White Holidays** = mean depth Dec 25–Jan 2; **DJFM** = mean depth Dec–Mar.
+First/last cover days use depth **> 10 cm**. Condition labels use the Avoid→Great
+snow-score scale (Good typically needs ~10+ cm). Season labels use the September
+start year (e.g. 2024–25).
 :::
