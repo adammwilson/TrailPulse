@@ -1051,6 +1051,118 @@ plot_nordic_ski_index <- function(weather_df,
 }
 
 # ────────────────────────────────────────────────────────────────────────────
+# 7b2. Historical trends — peak depth + ski days (line panels + lm/loess)
+# Frequentist 95% CI via geom_smooth (no brms/rstanarm in stack).
+# Current incomplete season plotted but excluded from smooths.
+# ────────────────────────────────────────────────────────────────────────────
+plot_historical_ski_trends <- function(weather_df,
+                                       threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
+  today_sy <- current_snow_year()
+  thr_lab  <- .threshold_cm_in_label(threshold_cm)
+  in_season_now <- isTRUE(is_snow_season(Sys.Date())[[1]])
+  start_yr <- year(WEATHER_START)
+
+  peak <- compute_peak_snow_depth(weather_df) |>
+    filter(snow_year >= start_yr) |>
+    mutate(
+      is_current = snow_year == today_sy,
+      incomplete = is_current & in_season_now
+    )
+
+  ski <- compute_nordic_ski_index(weather_df, threshold_cm = threshold_cm) |>
+    filter(snow_year >= start_yr) |>
+    mutate(
+      is_current = snow_year == today_sy,
+      incomplete = is_current & in_season_now
+    )
+
+  if (nrow(peak) == 0 && nrow(ski) == 0) return(invisible(NULL))
+
+  season_lab <- glue("Snow season starting {month.abb[SNOW_START_MONTH]} ({SNOW_SEASON_LABEL})")
+  ci_note <- paste(
+    "Lines: linear regression (solid) and loess (dashed) with frequentist 95% CI bands.",
+    "Incomplete current season excluded from smooths."
+  )
+
+  .trend_panel <- function(df, y_col, y_lab, title) {
+    if (nrow(df) == 0) {
+      return(
+        ggplot() +
+          annotate("text", x = 0.5, y = 0.5, label = "No data") +
+          theme_void() +
+          labs(title = title)
+      )
+    }
+    fit_df  <- df |> filter(!incomplete)
+    cur_df  <- df |> filter(is_current)
+    hist_df <- df |> filter(!is_current)
+
+    # Prefer loess span that works with short series; fall back if too few points
+    use_loess <- nrow(fit_df) >= 5L
+    use_lm    <- nrow(fit_df) >= 3L
+
+    p <- ggplot(df, aes(x = snow_year, y = .data[[y_col]])) +
+      geom_line(data = fit_df, color = "#90caf9", linewidth = 0.6, na.rm = TRUE) +
+      geom_point(data = hist_df, color = "#1565c0", size = 2, na.rm = TRUE)
+
+    if (use_lm) {
+      p <- p +
+        geom_smooth(
+          data = fit_df, method = "lm", formula = y ~ x, se = TRUE, level = 0.95,
+          color = "#0d47a1", fill = "#90caf9", alpha = 0.25, linewidth = 0.9,
+          linetype = "solid", show.legend = FALSE
+        )
+    }
+    if (use_loess) {
+      p <- p +
+        geom_smooth(
+          data = fit_df, method = "loess", formula = y ~ x, se = TRUE, level = 0.95,
+          color = "#e65100", fill = "#ffcc80", alpha = 0.2, linewidth = 0.8,
+          linetype = "dashed", show.legend = FALSE
+        )
+    }
+
+    if (nrow(cur_df) > 0) {
+      p <- p +
+        geom_point(
+          data = cur_df, size = 2.8, shape = 21,
+          fill = if (any(cur_df$incomplete)) "white" else "#1e88e5",
+          color = "#1e88e5", stroke = 1.2
+        )
+    }
+
+    p +
+      labs(x = season_lab, y = y_lab, title = title) +
+      theme_trailpulse() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+  }
+
+  p_depth <- .trend_panel(
+    peak, "peak_depth_cm",
+    "Peak snow depth (cm)",
+    "Peak Snow Depth by Winter"
+  ) + .scale_y_cm_inches("Peak snow depth (cm)")
+
+  p_ski <- .trend_panel(
+    ski, "skiable_days",
+    glue("Cumulative ski days (\u2265{thr_lab})"),
+    glue("Cumulative Ski Days (\u2265{thr_lab})")
+  )
+
+  (p_depth / p_ski) +
+    plot_annotation(
+      caption = glue(
+        "{ci_note}\n",
+        "Winter season {SNOW_SEASON_LABEL}. Ski day = mean depth \u2265 {thr_lab}. ",
+        "Open point = incomplete current season."
+      ),
+      theme = theme(
+        plot.caption = element_text(size = 7, color = "grey50", hjust = 0)
+      )
+    )
+}
+
+# ────────────────────────────────────────────────────────────────────────────
 # 7c. Mean 7-day snow depth — all seasons spaghetti + quantile ribbons
 # ────────────────────────────────────────────────────────────────────────────
 plot_mean_7day_snow_depth <- function(weather_df) {
