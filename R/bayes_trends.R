@@ -1,7 +1,7 @@
 # R/bayes_trends.R
-# Bayesian trend bands via brms (linear + spline) + trail annual summaries.
-# Linear:  y ~ x
-# Smooth:  y ~ s(x)   (thin-plate / mgcv spline in brms)
+# Bayesian trend bands via brms + trail annual summaries.
+# Historical Trends plots use the smooth only: y ~ s(x) (brms / mgcv spline).
+# bayes_lm_band (y ~ x) remains available but is not overlaid on trend plots.
 # Modest MCMC tuned for ~20–30 annual points (CI cost).
 # Depends on: setup.R, parks_config.R, condition.R, mud columns on weather_df.
 
