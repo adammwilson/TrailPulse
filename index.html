@@ -879,26 +879,113 @@ Glenwood, NY
   }
 })();
 
-/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB */
+/* Park panel-tabset: #snow / #trail hash (also ?tab=), seasonal default, Share URL */
 (function () {
-  if (!window.TP_DEFAULT_SNOW_TAB) return;
-  function activateSnowTab() {
-    var links = document.querySelectorAll('.panel-tabset .nav-link');
+  var panel = document.querySelector('.panel-tabset');
+  if (!panel) return;
+
+  function tabKeyFromText(text) {
+    text = text || '';
+    if (/Snow/i.test(text)) return 'snow';
+    if (/Trail/i.test(text)) return 'trail';
+    return null;
+  }
+
+  function findTabLink(key) {
+    var links = panel.querySelectorAll('.nav-link');
     for (var i = 0; i < links.length; i++) {
-      if (/Snow/i.test(links[i].textContent || '')) {
-        if (!links[i].classList.contains('active')) links[i].click();
-        return;
+      if (tabKeyFromText(links[i].textContent) === key) return links[i];
+    }
+    return null;
+  }
+
+  function activeTabKey() {
+    var active = panel.querySelector('.nav-link.active');
+    return tabKeyFromText(active && active.textContent) || 'trail';
+  }
+
+  function tabFromLocation() {
+    var h = (window.location.hash || '').replace(/^#/, '').toLowerCase();
+    if (h === 'snow' || h === 'trail') return h;
+    try {
+      var q = new URLSearchParams(window.location.search).get('tab');
+      if (q) {
+        q = String(q).toLowerCase();
+        if (q === 'snow' || q === 'trail') return q;
       }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function setTabHash(key, replace) {
+    if (key !== 'snow' && key !== 'trail') return;
+    var hash = '#' + key;
+    if (window.location.hash === hash) return;
+    try {
+      if (replace) {
+        history.replaceState(null, '', hash);
+      } else {
+        history.pushState(null, '', hash);
+      }
+    } catch (e) {
+      window.location.hash = key;
     }
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', activateSnowTab);
-  } else {
-    activateSnowTab();
+
+  function activateTab(key, syncHash) {
+    var link = findTabLink(key);
+    if (!link) return;
+    if (!link.classList.contains('active')) {
+      link.click();
+    }
+    if (syncHash) setTabHash(key, true);
   }
+
+  function applyInitialTab() {
+    var fromUrl = tabFromLocation();
+    if (fromUrl) {
+      activateTab(fromUrl, true);
+      return;
+    }
+    if (window.TP_DEFAULT_SNOW_TAB) {
+      activateTab('snow', true);
+      return;
+    }
+    setTabHash(activeTabKey(), true);
+  }
+
+  function onTabShown(ev) {
+    var t = ev.target;
+    if (!t || !panel.contains(t)) return;
+    var key = tabKeyFromText(t.textContent);
+    if (key) setTabHash(key, true);
+  }
+
+  panel.addEventListener('shown.bs.tab', onTabShown);
+  panel.addEventListener('click', function (ev) {
+    var link = ev.target && ev.target.closest ? ev.target.closest('.nav-link') : null;
+    if (!link || !panel.contains(link)) return;
+    var key = tabKeyFromText(link.textContent);
+    if (key) {
+      window.setTimeout(function () { setTabHash(key, true); }, 0);
+    }
+  });
+
+  window.addEventListener('hashchange', function () {
+    var key = tabFromLocation();
+    if (key) activateTab(key, false);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyInitialTab);
+  } else {
+    applyInitialTab();
+  }
+
+  window.TP_activeParkTab = activeTabKey;
 })();
 
-/* Share this page — copy absolute park URL to clipboard */
+/* Share this page — copy absolute park URL including current tab hash */
 (function () {
   var btn = document.getElementById('tp-share-btn');
   if (!btn) return;
@@ -909,8 +996,14 @@ Glenwood, NY
     var path = window.location.pathname || '/';
     path = path.replace(/index\.html?$/i, '');
     if (path.charAt(path.length - 1) !== '/') path += '/';
-    if (origin && origin !== 'null') return origin + path;
-    return window.location.href.split('#')[0].split('?')[0];
+    var tab = (typeof window.TP_activeParkTab === 'function')
+      ? window.TP_activeParkTab()
+      : ((window.location.hash || '').replace(/^#/, '') || 'trail');
+    if (tab !== 'snow' && tab !== 'trail') tab = 'trail';
+    var hash = '#' + tab;
+    if (origin && origin !== 'null') return origin + path + hash;
+    var base = window.location.href.split('#')[0].split('?')[0];
+    return base.replace(/index\.html?$/i, '') + hash;
   }
 
   function setFeedback(text, ok) {

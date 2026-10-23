@@ -567,7 +567,7 @@ svg.ggplot,
 <meta property="og:description" content="Wales, NY — Trail Conditions Report">
 <meta name="twitter:title" content="Hunters Creek Park – TrailPulse">
 <meta name="twitter:description" content="Wales, NY — Trail Conditions Report">
-<meta name="description" content="Trail conditions · High 59°F · 4 mm rain (7d) · Getting drier · Updated Oct 23, 2026">
+<meta name="description" content="Trail conditions · High 57°F · 4 mm rain (7d) · Getting drier · Updated Oct 23, 2026">
 
 
 <meta property="og:title" content="Hunters Creek Park – TrailPulse">
@@ -831,14 +831,13 @@ svg.ggplot,
 
 
 <div class="tp-page-toolbar">
-<div class="tp-update-banner" data-rendered-at="1792753789">
-Last updated: October 23, 2026 at 07:09 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
+<div class="tp-update-banner" data-rendered-at="1792765810">
+Last updated: October 23, 2026 at 10:30 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
 </div>
 <button type="button" class="tp-share-btn" id="tp-share-btn" aria-label="Copy link to this park page">
 Share this page
 </button>
 </div>
-<script>window.TP_DEFAULT_SNOW_TAB = true;</script>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">🥾 Trail Conditions</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">❄️ Snow &amp; Winter</a></li></ul>
 <div class="tab-content">
@@ -869,7 +868,7 @@ Trails are dry and firm — great day to hike or ride.
 <div class="tp-stat-row">
 <div class="tp-stat-box">
 <div class="stat-value">
-59°F (15°C)
+57°F (14°C)
 </div>
 <div class="stat-label">
 Today’s High
@@ -1020,14 +1019,23 @@ Calendar year-to-date precipitation is <strong>wetter than 96%</strong> of years
 <p>Current EVI also appears in the Current Conditions panel above (with historical percentile ribbons). The chart below shows all years, the long-term median, and percentile bands.</p>
 <div class="cell">
 <div class="cell-output-display">
+<div class="callout callout-note"><div class="callout-body"><p><strong>HLS EVI unavailable</strong> for this park — requires a boundary geojson and NASA Earthdata credentials (or a warm AppEEARS cache).</p></div></div>
+</div>
+</div>
+</section>
+</section>
+<section id="historical-trends" class="level3">
+<h3 class="anchored" data-anchor-id="historical-trends">Historical Trends</h3>
+<p>Annual trail metrics by <strong>calendar year</strong>: days at Good ([6, 8)) and Great (≥8) scores, mean JJA soil moisture, and the first/last dates of runs with score &gt; 6 for ≥7 consecutive days. Trends use <strong>brms</strong> Bayesian linear (<code>y ~ year</code>) and spline (<code>y ~ s(year)</code>) fits with 95% credible intervals.</p>
+<div class="cell">
+<div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/evi-annual-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p><img src="index_files/figure-html/historical-trail-trends-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
-</section>
 </section>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
@@ -1232,18 +1240,6 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
 </div>
 </div>
 </section>
-<section id="peak-snow-depth-by-winter" class="level4">
-<h4 class="anchored" data-anchor-id="peak-snow-depth-by-winter">Peak Snow Depth by Winter</h4>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/snow-depth-history-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
 <section id="cumulative-ski-days-all-seasons" class="level4">
 <h4 class="anchored" data-anchor-id="cumulative-ski-days-all-seasons">Cumulative Ski Days — All Seasons</h4>
 <div class="cell">
@@ -1251,18 +1247,6 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
 <div>
 <figure class="figure">
 <p><img src="index_files/figure-html/ski-days-spaghetti-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="cumulative-ski-days-by-winter" class="level4">
-<h4 class="anchored" data-anchor-id="cumulative-ski-days-by-winter">Cumulative Ski Days by Winter</h4>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/nordic-ski-index-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1280,6 +1264,19 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
 </div>
 </div>
 </section>
+</section>
+<section id="historical-trends-1" class="level3">
+<h3 class="anchored" data-anchor-id="historical-trends-1">Historical Trends</h3>
+<p>Peak snow depth and cumulative ski days by winter season (Sep–May), with Bayesian <strong>brms</strong> linear (<code>y ~ year</code>) and spline (<code>y ~ s(year)</code>) trends (95% credible intervals). Current incomplete season is shown as a point but excluded from the smooths.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/historical-ski-trends-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
 </div>
 </div>
@@ -1347,26 +1344,113 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
   }
 })();
 
-/* Default to Snow tab when park page sets window.TP_DEFAULT_SNOW_TAB */
+/* Park panel-tabset: #snow / #trail hash (also ?tab=), seasonal default, Share URL */
 (function () {
-  if (!window.TP_DEFAULT_SNOW_TAB) return;
-  function activateSnowTab() {
-    var links = document.querySelectorAll('.panel-tabset .nav-link');
+  var panel = document.querySelector('.panel-tabset');
+  if (!panel) return;
+
+  function tabKeyFromText(text) {
+    text = text || '';
+    if (/Snow/i.test(text)) return 'snow';
+    if (/Trail/i.test(text)) return 'trail';
+    return null;
+  }
+
+  function findTabLink(key) {
+    var links = panel.querySelectorAll('.nav-link');
     for (var i = 0; i < links.length; i++) {
-      if (/Snow/i.test(links[i].textContent || '')) {
-        if (!links[i].classList.contains('active')) links[i].click();
-        return;
+      if (tabKeyFromText(links[i].textContent) === key) return links[i];
+    }
+    return null;
+  }
+
+  function activeTabKey() {
+    var active = panel.querySelector('.nav-link.active');
+    return tabKeyFromText(active && active.textContent) || 'trail';
+  }
+
+  function tabFromLocation() {
+    var h = (window.location.hash || '').replace(/^#/, '').toLowerCase();
+    if (h === 'snow' || h === 'trail') return h;
+    try {
+      var q = new URLSearchParams(window.location.search).get('tab');
+      if (q) {
+        q = String(q).toLowerCase();
+        if (q === 'snow' || q === 'trail') return q;
       }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function setTabHash(key, replace) {
+    if (key !== 'snow' && key !== 'trail') return;
+    var hash = '#' + key;
+    if (window.location.hash === hash) return;
+    try {
+      if (replace) {
+        history.replaceState(null, '', hash);
+      } else {
+        history.pushState(null, '', hash);
+      }
+    } catch (e) {
+      window.location.hash = key;
     }
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', activateSnowTab);
-  } else {
-    activateSnowTab();
+
+  function activateTab(key, syncHash) {
+    var link = findTabLink(key);
+    if (!link) return;
+    if (!link.classList.contains('active')) {
+      link.click();
+    }
+    if (syncHash) setTabHash(key, true);
   }
+
+  function applyInitialTab() {
+    var fromUrl = tabFromLocation();
+    if (fromUrl) {
+      activateTab(fromUrl, true);
+      return;
+    }
+    if (window.TP_DEFAULT_SNOW_TAB) {
+      activateTab('snow', true);
+      return;
+    }
+    setTabHash(activeTabKey(), true);
+  }
+
+  function onTabShown(ev) {
+    var t = ev.target;
+    if (!t || !panel.contains(t)) return;
+    var key = tabKeyFromText(t.textContent);
+    if (key) setTabHash(key, true);
+  }
+
+  panel.addEventListener('shown.bs.tab', onTabShown);
+  panel.addEventListener('click', function (ev) {
+    var link = ev.target && ev.target.closest ? ev.target.closest('.nav-link') : null;
+    if (!link || !panel.contains(link)) return;
+    var key = tabKeyFromText(link.textContent);
+    if (key) {
+      window.setTimeout(function () { setTabHash(key, true); }, 0);
+    }
+  });
+
+  window.addEventListener('hashchange', function () {
+    var key = tabFromLocation();
+    if (key) activateTab(key, false);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyInitialTab);
+  } else {
+    applyInitialTab();
+  }
+
+  window.TP_activeParkTab = activeTabKey;
 })();
 
-/* Share this page — copy absolute park URL to clipboard */
+/* Share this page — copy absolute park URL including current tab hash */
 (function () {
   var btn = document.getElementById('tp-share-btn');
   if (!btn) return;
@@ -1377,8 +1461,14 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
     var path = window.location.pathname || '/';
     path = path.replace(/index\.html?$/i, '');
     if (path.charAt(path.length - 1) !== '/') path += '/';
-    if (origin && origin !== 'null') return origin + path;
-    return window.location.href.split('#')[0].split('?')[0];
+    var tab = (typeof window.TP_activeParkTab === 'function')
+      ? window.TP_activeParkTab()
+      : ((window.location.hash || '').replace(/^#/, '') || 'trail');
+    if (tab !== 'snow' && tab !== 'trail') tab = 'trail';
+    var hash = '#' + tab;
+    if (origin && origin !== 'null') return origin + path + hash;
+    var base = window.location.href.split('#')[0].split('?')[0];
+    return base.replace(/index\.html?$/i, '') + hash;
   }
 
   function setFeedback(text, ok) {
