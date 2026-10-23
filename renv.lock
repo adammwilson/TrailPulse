@@ -16,6 +16,19 @@
       "Repository": "CRAN",
       "Hash": "87905902999e70199a81869ef4ccaf82"
     },
+    "Brobdingnag": {
+      "Package": "Brobdingnag",
+      "Version": "1.3-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Matrix",
+        "R",
+        "graphics",
+        "methods"
+      ],
+      "Hash": "e5b3b033328cd457e270a9149f82942d"
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.3.0",
@@ -300,6 +313,60 @@
       ],
       "Hash": "d39b147eb7fe9df64a1a55f72346360c"
     },
+    "bridgesampling": {
+      "Package": "bridgesampling",
+      "Version": "1.2-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Brobdingnag",
+        "Matrix",
+        "R",
+        "coda",
+        "methods",
+        "mvtnorm",
+        "parallel",
+        "scales",
+        "stringr",
+        "utils"
+      ],
+      "Hash": "da64ef771aeb8daeaed65ef1e5ea419a"
+    },
+    "brms": {
+      "Package": "brms",
+      "Version": "2.23.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Matrix",
+        "R",
+        "Rcpp",
+        "abind",
+        "backports",
+        "bayesplot",
+        "bridgesampling",
+        "coda",
+        "future",
+        "future.apply",
+        "ggplot2",
+        "glue",
+        "grDevices",
+        "loo",
+        "matrixStats",
+        "methods",
+        "mgcv",
+        "nleqslv",
+        "nlme",
+        "parallel",
+        "posterior",
+        "rlang",
+        "rstan",
+        "rstantools",
+        "stats",
+        "utils"
+      ],
+      "Hash": "7092708ba7ee671506551ca2264474d5"
+    },
     "broom": {
       "Package": "broom",
       "Version": "1.0.12",
@@ -454,6 +521,17 @@
         "utils"
       ],
       "Hash": "1482831bf9efe2ae01b37d9145d708b8"
+    },
+    "coda": {
+      "Package": "coda",
+      "Version": "0.19-4.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "lattice"
+      ],
+      "Hash": "af436915c590afc6fffc3ce3a5be1569"
     },
     "codetools": {
       "Package": "codetools",
@@ -800,6 +878,38 @@
       ],
       "Hash": "09278623bca442bc53b0940ffa2f6d87"
     },
+    "future": {
+      "Package": "future",
+      "Version": "1.80.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "digest",
+        "globals",
+        "listenv",
+        "parallel",
+        "parallelly",
+        "tools",
+        "utils"
+      ],
+      "Hash": "08bb70ca9876ea87966ef2513744c569"
+    },
+    "future.apply": {
+      "Package": "future.apply",
+      "Version": "1.21.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "future",
+        "globals",
+        "parallel",
+        "stats",
+        "utils"
+      ],
+      "Hash": "8291d4a21fa14c7a173055b3906a62f2"
+    },
     "gargle": {
       "Package": "gargle",
       "Version": "1.6.1",
@@ -892,6 +1002,17 @@
         "withr"
       ],
       "Hash": "e4b598e63d7cf442681ef2861d1be813"
+    },
+    "globals": {
+      "Package": "globals",
+      "Version": "0.20.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "codetools"
+      ],
+      "Hash": "8217a9261e579e41048f24ead31ca568"
     },
     "glue": {
       "Package": "glue",
@@ -1283,6 +1404,16 @@
       ],
       "Hash": "36dbfe4fba6c064db50a671a90297c85"
     },
+    "listenv": {
+      "Package": "listenv",
+      "Version": "1.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "44cdfbb2bc2bef5b9f99a6783da3b13a"
+    },
     "litedown": {
       "Package": "litedown",
       "Version": "0.11",
@@ -1463,6 +1594,25 @@
       ],
       "Hash": "4f50122dc256b1b6996a4703fecea821"
     },
+    "mvtnorm": {
+      "Package": "mvtnorm",
+      "Version": "1.4-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "stats",
+        "utils"
+      ],
+      "Hash": "f12b9432ec251666c49e7d01f1aff3c7"
+    },
+    "nleqslv": {
+      "Package": "nleqslv",
+      "Version": "3.3.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "27d44c582c17bb855bf6cd34e68b33ce"
+    },
     "nlme": {
       "Package": "nlme",
       "Version": "3.1-169",
@@ -1525,6 +1675,18 @@
         "R"
       ],
       "Hash": "627d6993db1043703c0b084fa432f21f"
+    },
+    "parallelly": {
+      "Package": "parallelly",
+      "Version": "1.48.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "parallel",
+        "tools",
+        "utils"
+      ],
+      "Hash": "a21defc75d66882933d80b7ae824a7b1"
     },
     "patchwork": {
       "Package": "patchwork",
@@ -1948,36 +2110,6 @@
         "stats4"
       ],
       "Hash": "5f47b80f0db40503697eef138a31a6ef"
-    },
-    "rstanarm": {
-      "Package": "rstanarm",
-      "Version": "2.32.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "BH",
-        "Matrix",
-        "R",
-        "Rcpp",
-        "RcppEigen",
-        "RcppParallel",
-        "StanHeaders",
-        "bayesplot",
-        "ggplot2",
-        "lme4",
-        "loo",
-        "methods",
-        "nlme",
-        "posterior",
-        "reformulas",
-        "rstan",
-        "rstantools",
-        "shinystan",
-        "stats",
-        "survival",
-        "utils"
-      ],
-      "Hash": "f6e162273f2811804154e519244b0dcc"
     },
     "rstantools": {
       "Package": "rstantools",

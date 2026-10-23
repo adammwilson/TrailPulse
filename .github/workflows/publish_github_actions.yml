@@ -48,6 +48,7 @@ jobs:
           path: |
             parks/hunters-creek/data/cache
             parks/sprague-brook/data/cache
+            data/cache/brms
           key: park-cache-${{ github.run_id }}
           restore-keys: |
             park-cache-

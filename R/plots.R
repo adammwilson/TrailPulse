@@ -1051,7 +1051,54 @@ plot_nordic_ski_index <- function(weather_df,
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# Shared annual trend panel: points/line + Bayesian lm CrI + frequentist loess
+# Shared: add Bayesian lm + spline CrI ribbons to a ggplot
+# ────────────────────────────────────────────────────────────────────────────
+.add_bayes_trend_bands <- function(p, fit_df, x_col, y_col, seed,
+                                   lm_color = "#0d47a1",
+                                   lm_fill = "#90caf9",
+                                   sm_color = "#e65100",
+                                   sm_fill = "#ffcc80") {
+  if (nrow(fit_df) >= 3L) {
+    band <- bayes_lm_band(fit_df, x = x_col, y = y_col, seed = seed)
+    if (!is.null(band)) {
+      p <- p +
+        geom_ribbon(
+          data = band,
+          aes(x = x, ymin = .lower, ymax = .upper),
+          inherit.aes = FALSE,
+          fill = lm_fill, alpha = 0.25
+        ) +
+        geom_line(
+          data = band,
+          aes(x = x, y = .mean),
+          inherit.aes = FALSE,
+          color = lm_color, linewidth = 0.9
+        )
+    }
+  }
+  if (nrow(fit_df) >= 8L) {
+    sband <- bayes_smooth_band(fit_df, x = x_col, y = y_col, seed = seed + 50L)
+    if (!is.null(sband)) {
+      p <- p +
+        geom_ribbon(
+          data = sband,
+          aes(x = x, ymin = .lower, ymax = .upper),
+          inherit.aes = FALSE,
+          fill = sm_fill, alpha = 0.2
+        ) +
+        geom_line(
+          data = sband,
+          aes(x = x, y = .mean),
+          inherit.aes = FALSE,
+          color = sm_color, linewidth = 0.8, linetype = "dashed"
+        )
+    }
+  }
+  p
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# Shared annual trend panel: points/line + brms lm CrI + brms spline CrI
 # ────────────────────────────────────────────────────────────────────────────
 .trend_panel_bayes <- function(df, x_col, y_col, y_lab, title,
                                x_lab = NULL,
@@ -1072,39 +1119,14 @@ plot_nordic_ski_index <- function(weather_df,
   cur_df  <- df |> filter(is_current)
   hist_df <- df |> filter(!is_current)
 
-  use_loess <- nrow(fit_df) >= 5L
-  use_lm    <- nrow(fit_df) >= 3L
-
   p <- ggplot(df, aes(x = .data[[x_col]], y = .data[[y_col]])) +
     geom_line(data = fit_df, color = line_color, linewidth = 0.6, na.rm = TRUE) +
     geom_point(data = hist_df, color = point_color, size = 2, na.rm = TRUE)
 
-  if (use_lm) {
-    band <- bayes_lm_band(fit_df, x = x_col, y = y_col, seed = seed)
-    if (!is.null(band)) {
-      p <- p +
-        geom_ribbon(
-          data = band,
-          aes(x = x, ymin = .lower, ymax = .upper),
-          inherit.aes = FALSE,
-          fill = lm_fill, alpha = 0.25
-        ) +
-        geom_line(
-          data = band,
-          aes(x = x, y = .mean),
-          inherit.aes = FALSE,
-          color = lm_color, linewidth = 0.9
-        )
-    }
-  }
-  if (use_loess) {
-    p <- p +
-      geom_smooth(
-        data = fit_df, method = "loess", formula = y ~ x, se = TRUE, level = 0.95,
-        color = "#e65100", fill = "#ffcc80", alpha = 0.2, linewidth = 0.8,
-        linetype = "dashed", show.legend = FALSE
-      )
-  }
+  p <- .add_bayes_trend_bands(
+    p, fit_df, x_col, y_col, seed = seed,
+    lm_color = lm_color, lm_fill = lm_fill
+  )
 
   if (nrow(cur_df) > 0) {
     p <- p +
@@ -1122,9 +1144,8 @@ plot_nordic_ski_index <- function(weather_df,
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 7b2. Historical trends — peak depth + ski days (line panels + bayes lm/loess)
-# Bayesian 95% CrI for linear mean via rstanarm::stan_glm; loess stays frequentist.
-# Current incomplete season plotted but excluded from smooths.
+# 7b2. Historical trends — peak depth + ski days (brms lm + spline)
+# Bayesian 95% CrI via brms: y ~ x and y ~ s(x). Incomplete season excluded.
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_ski_trends <- function(weather_df,
                                        threshold_cm = NORDIC_SKI_THRESHOLD_CM) {
@@ -1151,8 +1172,9 @@ plot_historical_ski_trends <- function(weather_df,
 
   season_lab <- glue("Snow season starting {month.abb[SNOW_START_MONTH]} ({SNOW_SEASON_LABEL})")
   ci_note <- paste(
-    "Solid line + band: Bayesian linear regression (rstanarm) 95% credible interval for the mean.",
-    "Dashed: frequentist loess with 95% CI. Incomplete current season excluded from smooths."
+    "Solid + band: Bayesian linear mean (brms, y ~ year) 95% CrI.",
+    "Dashed + band: Bayesian spline (brms, y ~ s(year)) 95% CrI.",
+    "Incomplete current season excluded from smooths."
   )
 
   p_depth <- .trend_panel_bayes(
@@ -1186,7 +1208,7 @@ plot_historical_ski_trends <- function(weather_df,
 
 # ────────────────────────────────────────────────────────────────────────────
 # 7b3. Trail Historical Trends — Good/Great days, JJA soil moisture, streak DOY
-# Calendar-year season. Bayesian lm CrI (rstanarm); loess frequentist.
+# Calendar-year season. brms lm + spline 95% CrIs.
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_trail_trends <- function(weather_df) {
   today_yr <- year(Sys.Date())
@@ -1216,7 +1238,8 @@ plot_historical_trail_trends <- function(weather_df) {
 
   x_lab <- "Calendar year"
   ci_note <- paste(
-    "Solid + band: Bayesian linear mean (rstanarm) 95% CrI; dashed: frequentist loess 95% CI.",
+    "Solid + band: Bayesian linear mean (brms, y ~ year) 95% CrI;",
+    "dashed + band: Bayesian spline (brms, y ~ s(year)) 95% CrI.",
     "Good = score [6, 8); Great = score \u2265 8 (CONDITION_BREAKS).",
     "Streak: score > 6 for \u2265 7 consecutive days; first = start of first run, last = end of last run."
   )
@@ -1252,34 +1275,15 @@ plot_historical_trail_trends <- function(weather_df) {
 
       for (b in c("Good", "Great")) {
         sub <- fit_long |> filter(band == b)
-        if (nrow(sub) >= 3L) {
-          band_df <- bayes_lm_band(sub, x = "cal_year", y = "n_days",
-                                   seed = if (b == "Good") 301L else 302L)
-          if (!is.null(band_df)) {
-            fill_col <- if (b == "Good") "#d9f99d" else "#bbf7d0"
-            line_col <- unname(CONDITION_COLORS_5[b])
-            p <- p +
-              geom_ribbon(
-                data = band_df,
-                aes(x = x, ymin = .lower, ymax = .upper),
-                inherit.aes = FALSE,
-                fill = fill_col, alpha = 0.35
-              ) +
-              geom_line(
-                data = band_df,
-                aes(x = x, y = .mean),
-                inherit.aes = FALSE,
-                color = line_col, linewidth = 0.9
-              )
-          }
-        }
-        if (nrow(sub) >= 5L) {
-          p <- p +
-            geom_smooth(
-              data = sub, method = "loess", formula = y ~ x, se = FALSE,
-              linetype = "dashed", linewidth = 0.7, show.legend = FALSE
-            )
-        }
+        fill_col <- if (b == "Good") "#d9f99d" else "#bbf7d0"
+        line_col <- unname(CONDITION_COLORS_5[b])
+        sm_fill  <- if (b == "Good") "#fef3c7" else "#ffedd5"
+        p <- .add_bayes_trend_bands(
+          p, sub, "cal_year", "n_days",
+          seed = if (b == "Good") 301L else 302L,
+          lm_color = line_col, lm_fill = fill_col,
+          sm_color = line_col, sm_fill = sm_fill
+        )
       }
 
       if (nrow(cur_long) > 0) {
@@ -1345,34 +1349,15 @@ plot_historical_trail_trends <- function(weather_df) {
 
       for (w in c("First", "Last")) {
         sub <- fit_long |> filter(which == w)
-        if (nrow(sub) >= 3L) {
-          band_df <- bayes_lm_band(sub, x = "cal_year", y = "doy",
-                                   seed = if (w == "First") 304L else 305L)
-          if (!is.null(band_df)) {
-            fill_col <- if (w == "First") "#bfdbfe" else "#fde68a"
-            line_col <- if (w == "First") "#2563eb" else "#b45309"
-            p <- p +
-              geom_ribbon(
-                data = band_df,
-                aes(x = x, ymin = .lower, ymax = .upper),
-                inherit.aes = FALSE,
-                fill = fill_col, alpha = 0.3
-              ) +
-              geom_line(
-                data = band_df,
-                aes(x = x, y = .mean),
-                inherit.aes = FALSE,
-                color = line_col, linewidth = 0.9
-              )
-          }
-        }
-        if (nrow(sub) >= 5L) {
-          p <- p +
-            geom_smooth(
-              data = sub, method = "loess", formula = y ~ x, se = FALSE,
-              linetype = "dashed", linewidth = 0.7, show.legend = FALSE
-            )
-        }
+        line_col <- if (w == "First") "#2563eb" else "#b45309"
+        fill_col <- if (w == "First") "#bfdbfe" else "#fde68a"
+        sm_fill  <- if (w == "First") "#dbeafe" else "#ffedd5"
+        p <- .add_bayes_trend_bands(
+          p, sub, "cal_year", "doy",
+          seed = if (w == "First") 304L else 305L,
+          lm_color = line_col, lm_fill = fill_col,
+          sm_color = line_col, sm_fill = sm_fill
+        )
       }
 
       if (nrow(cur_long) > 0) {
