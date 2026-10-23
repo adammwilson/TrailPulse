@@ -831,8 +831,8 @@ svg.ggplot,
 
 
 <div class="tp-page-toolbar">
-<div class="tp-update-banner" data-rendered-at="1792765810">
-Last updated: October 23, 2026 at 10:30 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
+<div class="tp-update-banner" data-rendered-at="1792769319">
+Last updated: October 23, 2026 at 11:28 AM EDT. Data from <a href="https://open-meteo.com">Open-Meteo</a>, <a href="https://waterdata.usgs.gov">USGS</a>, and <a href="https://www.weather.gov">NWS</a>.
 </div>
 <button type="button" class="tp-share-btn" id="tp-share-btn" aria-label="Copy link to this park page">
 Share this page
@@ -1026,7 +1026,7 @@ Calendar year-to-date precipitation is <strong>wetter than 96%</strong> of years
 </section>
 <section id="historical-trends" class="level3">
 <h3 class="anchored" data-anchor-id="historical-trends">Historical Trends</h3>
-<p>Annual trail metrics by <strong>calendar year</strong>: days at Good ([6, 8)) and Great (≥8) scores, mean JJA soil moisture, and the first/last dates of runs with score &gt; 6 for ≥7 consecutive days. Trends use <strong>brms</strong> Bayesian linear (<code>y ~ year</code>) and spline (<code>y ~ s(year)</code>) fits with 95% credible intervals.</p>
+<p>Annual trail metrics by <strong>calendar year</strong>: days at Good ([6, 8)) and Great (≥8) scores (ribbon between the two counts), mean JJA soil moisture, and the first/last dates of runs with score &gt; 6 for ≥7 consecutive days (ribbon spanning first→last day-of-year). Trends use a <strong>brms</strong> Bayesian smooth (<code>y ~ s(year)</code>) with 95% credible intervals — no linear regression overlay.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -1267,7 +1267,7 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
 </section>
 <section id="historical-trends-1" class="level3">
 <h3 class="anchored" data-anchor-id="historical-trends-1">Historical Trends</h3>
-<p>Peak snow depth and cumulative ski days by winter season (Sep–May), with Bayesian <strong>brms</strong> linear (<code>y ~ year</code>) and spline (<code>y ~ s(year)</code>) trends (95% credible intervals). Current incomplete season is shown as a point but excluded from the smooths.</p>
+<p>Winter-season (Sep–May) annual metrics with a Bayesian <strong>brms</strong> smooth (<code>y ~ s(year)</code>, 95% CrI) only — no linear regression. Panels (top→bottom): total snowfall; days with snow on the ground (depth &gt; 0); cumulative ski days (≥ park threshold); peak depth; mean DJFM (Dec–Mar) depth; White Holidays mean depth (Dec 25–Jan 2); first→last day with snow &gt; 10 cm (ribbon). Current incomplete season is shown as a point but excluded from the smooths.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -1313,7 +1313,7 @@ Season-to-date snowfall is <strong>less snowy than 0%</strong> of winters since 
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>Winter stats use the park snow season from <code>data/parks.yml</code> (default <strong>Sep–May</strong>). A <strong>ski day</strong> counts toward <strong>cumulative ski days</strong> when daily mean snow depth is at or above the park threshold (default <strong>10 cm / 4 in</strong>, park-configurable). Condition labels use the Avoid→Great snow-score scale (Good typically needs ~10+ cm). Season labels use the September start year (e.g.&nbsp;2024–25).</p>
+<p>Winter stats use the park snow season from <code>data/parks.yml</code> (default <strong>Sep–May</strong>). A <strong>day with snow</strong> (Historical Trends) is any day with mean snow depth <strong>&gt; 0 cm</strong>. A <strong>ski day</strong> counts toward <strong>cumulative ski days</strong> when daily mean snow depth is at or above the park threshold (default <strong>10 cm / 4 in</strong>, park-configurable). <strong>White Holidays</strong> = mean depth Dec 25–Jan 2; <strong>DJFM</strong> = mean depth Dec–Mar. First/last cover days use depth <strong>&gt; 10 cm</strong>. Condition labels use the Avoid→Great snow-score scale (Good typically needs ~10+ cm). Season labels use the September start year (e.g.&nbsp;2024–25).</p>
 </div>
 </div>
 </div>
