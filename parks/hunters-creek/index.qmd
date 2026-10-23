@@ -22,6 +22,7 @@ source("../../R/fetch_nws.R")
 source("../../R/mud_model.R")
 source("../../R/condition.R")
 source("../../R/snow_model.R")
+source("../../R/bayes_trends.R")
 source("../../R/plots.R")
 source("../../R/mudface.R")
 source("../../R/snowface.R")
@@ -319,6 +320,17 @@ if (!is.null(evi_data) && nrow(evi_data) > 0) {
 }
 ```
 
+### Historical Trends
+
+Annual trail metrics by **calendar year**: days at Good (`r paste0("[", CONDITION_BREAKS[2], ", ", CONDITION_BREAKS[3], ")")`) and Great (`r paste0("\u2265", CONDITION_BREAKS[3])`) scores, mean JJA soil moisture, and the first/last dates of runs with score > 6 for ≥7 consecutive days. Bayesian linear trends use **rstanarm** 95% credible intervals; loess bands remain frequentist.
+
+```{r historical-trail-trends}
+#| fig-width: 8
+#| fig-height: 10
+#| out-width: "100%"
+plot_historical_trail_trends(weather_mud)
+```
+
 ## ❄️ Snow & Winter
 
 ```{r snow-hero}
@@ -481,9 +493,9 @@ plot_snow_season_facets(weather_mud)
 ### Historical Trends
 
 Peak snow depth and cumulative ski days by winter season
-(`r SNOW_SEASON_LABEL`), with a frequentist linear trend (95% CI for the mean)
-and a loess smooth (95% CI). Current incomplete season is shown as a point but
-excluded from the smooths.
+(`r SNOW_SEASON_LABEL`), with a Bayesian linear trend (**rstanarm** 95% credible
+interval for the mean) and a frequentist loess smooth (95% CI). Current incomplete
+season is shown as a point but excluded from the smooths.
 
 ```{r historical-ski-trends}
 #| fig-width: 8

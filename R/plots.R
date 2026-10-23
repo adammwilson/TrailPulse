@@ -1051,8 +1051,79 @@ plot_nordic_ski_index <- function(weather_df,
 }
 
 # ────────────────────────────────────────────────────────────────────────────
-# 7b2. Historical trends — peak depth + ski days (line panels + lm/loess)
-# Frequentist 95% CI via geom_smooth (no brms/rstanarm in stack).
+# Shared annual trend panel: points/line + Bayesian lm CrI + frequentist loess
+# ────────────────────────────────────────────────────────────────────────────
+.trend_panel_bayes <- function(df, x_col, y_col, y_lab, title,
+                               x_lab = NULL,
+                               line_color = "#90caf9",
+                               point_color = "#1565c0",
+                               lm_color = "#0d47a1",
+                               lm_fill = "#90caf9",
+                               seed = 123L) {
+  if (nrow(df) == 0) {
+    return(
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5, label = "No data") +
+        theme_void() +
+        labs(title = title)
+    )
+  }
+  fit_df  <- df |> filter(!incomplete)
+  cur_df  <- df |> filter(is_current)
+  hist_df <- df |> filter(!is_current)
+
+  use_loess <- nrow(fit_df) >= 5L
+  use_lm    <- nrow(fit_df) >= 3L
+
+  p <- ggplot(df, aes(x = .data[[x_col]], y = .data[[y_col]])) +
+    geom_line(data = fit_df, color = line_color, linewidth = 0.6, na.rm = TRUE) +
+    geom_point(data = hist_df, color = point_color, size = 2, na.rm = TRUE)
+
+  if (use_lm) {
+    band <- bayes_lm_band(fit_df, x = x_col, y = y_col, seed = seed)
+    if (!is.null(band)) {
+      p <- p +
+        geom_ribbon(
+          data = band,
+          aes(x = x, ymin = .lower, ymax = .upper),
+          inherit.aes = FALSE,
+          fill = lm_fill, alpha = 0.25
+        ) +
+        geom_line(
+          data = band,
+          aes(x = x, y = .mean),
+          inherit.aes = FALSE,
+          color = lm_color, linewidth = 0.9
+        )
+    }
+  }
+  if (use_loess) {
+    p <- p +
+      geom_smooth(
+        data = fit_df, method = "loess", formula = y ~ x, se = TRUE, level = 0.95,
+        color = "#e65100", fill = "#ffcc80", alpha = 0.2, linewidth = 0.8,
+        linetype = "dashed", show.legend = FALSE
+      )
+  }
+
+  if (nrow(cur_df) > 0) {
+    p <- p +
+      geom_point(
+        data = cur_df, size = 2.8, shape = 21,
+        fill = if (any(cur_df$incomplete)) "white" else point_color,
+        color = point_color, stroke = 1.2
+      )
+  }
+
+  p +
+    labs(x = x_lab, y = y_lab, title = title) +
+    theme_trailpulse() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7b2. Historical trends — peak depth + ski days (line panels + bayes lm/loess)
+# Bayesian 95% CrI for linear mean via rstanarm::stan_glm; loess stays frequentist.
 # Current incomplete season plotted but excluded from smooths.
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_ski_trends <- function(weather_df,
@@ -1080,73 +1151,24 @@ plot_historical_ski_trends <- function(weather_df,
 
   season_lab <- glue("Snow season starting {month.abb[SNOW_START_MONTH]} ({SNOW_SEASON_LABEL})")
   ci_note <- paste(
-    "Lines: linear regression (solid) and loess (dashed) with frequentist 95% CI bands.",
-    "Incomplete current season excluded from smooths."
+    "Solid line + band: Bayesian linear regression (rstanarm) 95% credible interval for the mean.",
+    "Dashed: frequentist loess with 95% CI. Incomplete current season excluded from smooths."
   )
 
-  .trend_panel <- function(df, y_col, y_lab, title) {
-    if (nrow(df) == 0) {
-      return(
-        ggplot() +
-          annotate("text", x = 0.5, y = 0.5, label = "No data") +
-          theme_void() +
-          labs(title = title)
-      )
-    }
-    fit_df  <- df |> filter(!incomplete)
-    cur_df  <- df |> filter(is_current)
-    hist_df <- df |> filter(!is_current)
-
-    # Prefer loess span that works with short series; fall back if too few points
-    use_loess <- nrow(fit_df) >= 5L
-    use_lm    <- nrow(fit_df) >= 3L
-
-    p <- ggplot(df, aes(x = snow_year, y = .data[[y_col]])) +
-      geom_line(data = fit_df, color = "#90caf9", linewidth = 0.6, na.rm = TRUE) +
-      geom_point(data = hist_df, color = "#1565c0", size = 2, na.rm = TRUE)
-
-    if (use_lm) {
-      p <- p +
-        geom_smooth(
-          data = fit_df, method = "lm", formula = y ~ x, se = TRUE, level = 0.95,
-          color = "#0d47a1", fill = "#90caf9", alpha = 0.25, linewidth = 0.9,
-          linetype = "solid", show.legend = FALSE
-        )
-    }
-    if (use_loess) {
-      p <- p +
-        geom_smooth(
-          data = fit_df, method = "loess", formula = y ~ x, se = TRUE, level = 0.95,
-          color = "#e65100", fill = "#ffcc80", alpha = 0.2, linewidth = 0.8,
-          linetype = "dashed", show.legend = FALSE
-        )
-    }
-
-    if (nrow(cur_df) > 0) {
-      p <- p +
-        geom_point(
-          data = cur_df, size = 2.8, shape = 21,
-          fill = if (any(cur_df$incomplete)) "white" else "#1e88e5",
-          color = "#1e88e5", stroke = 1.2
-        )
-    }
-
-    p +
-      labs(x = season_lab, y = y_lab, title = title) +
-      theme_trailpulse() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
-  }
-
-  p_depth <- .trend_panel(
-    peak, "peak_depth_cm",
-    "Peak snow depth (cm)",
-    "Peak Snow Depth by Winter"
+  p_depth <- .trend_panel_bayes(
+    peak, "snow_year", "peak_depth_cm",
+    y_lab = "Peak snow depth (cm)",
+    title = "Peak Snow Depth by Winter",
+    x_lab = season_lab,
+    seed = 201L
   ) + .scale_y_cm_inches("Peak snow depth (cm)")
 
-  p_ski <- .trend_panel(
-    ski, "skiable_days",
-    glue("Cumulative ski days (\u2265{thr_lab})"),
-    glue("Cumulative Ski Days (\u2265{thr_lab})")
+  p_ski <- .trend_panel_bayes(
+    ski, "snow_year", "skiable_days",
+    y_lab = glue("Cumulative ski days (\u2265{thr_lab})"),
+    title = glue("Cumulative Ski Days (\u2265{thr_lab})"),
+    x_lab = season_lab,
+    seed = 202L
   )
 
   (p_depth / p_ski) +
@@ -1155,6 +1177,228 @@ plot_historical_ski_trends <- function(weather_df,
         "{ci_note}\n",
         "Winter season {SNOW_SEASON_LABEL}. Ski day = mean depth \u2265 {thr_lab}. ",
         "Open point = incomplete current season."
+      ),
+      theme = theme(
+        plot.caption = element_text(size = 7, color = "grey50", hjust = 0)
+      )
+    )
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7b3. Trail Historical Trends — Good/Great days, JJA soil moisture, streak DOY
+# Calendar-year season. Bayesian lm CrI (rstanarm); loess frequentist.
+# ────────────────────────────────────────────────────────────────────────────
+plot_historical_trail_trends <- function(weather_df) {
+  today_yr <- year(Sys.Date())
+  # Calendar-year series incomplete until year end; JJA complete after August.
+  year_incomplete <- TRUE
+  jja_incomplete  <- month(Sys.Date()) < 9L
+
+  gg <- compute_annual_good_great_days(weather_df) |>
+    mutate(
+      is_current = cal_year == today_yr,
+      incomplete = is_current & year_incomplete
+    )
+  sm <- compute_jja_soil_moisture(weather_df) |>
+    mutate(
+      is_current = cal_year == today_yr,
+      incomplete = is_current & jja_incomplete
+    )
+  streak <- compute_score_streak_bounds(weather_df) |>
+    mutate(
+      is_current = cal_year == today_yr,
+      incomplete = is_current & year_incomplete
+    )
+
+  if (nrow(gg) == 0 && nrow(sm) == 0 && nrow(streak) == 0) {
+    return(invisible(NULL))
+  }
+
+  x_lab <- "Calendar year"
+  ci_note <- paste(
+    "Solid + band: Bayesian linear mean (rstanarm) 95% CrI; dashed: frequentist loess 95% CI.",
+    "Good = score [6, 8); Great = score \u2265 8 (CONDITION_BREAKS).",
+    "Streak: score > 6 for \u2265 7 consecutive days; first = start of first run, last = end of last run."
+  )
+
+  # Panel 1: Good and Great days (two series)
+  gg_long <- gg |>
+    tidyr::pivot_longer(
+      c(good_days, great_days),
+      names_to = "band", values_to = "n_days"
+    ) |>
+    mutate(
+      band = dplyr::recode(band, good_days = "Good", great_days = "Great"),
+      band = factor(band, levels = c("Good", "Great"))
+    )
+
+  p_gg <- {
+    if (nrow(gg_long) == 0) {
+      ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No data") +
+        theme_void() + labs(title = "Days at Good / Great")
+    } else {
+      fit_long <- gg_long |> filter(!incomplete)
+      cur_long <- gg_long |> filter(is_current)
+      hist_long <- gg_long |> filter(!is_current)
+
+      p <- ggplot(gg_long, aes(x = cal_year, y = n_days, color = band)) +
+        geom_line(data = fit_long, linewidth = 0.6, na.rm = TRUE) +
+        geom_point(data = hist_long, size = 2, na.rm = TRUE) +
+        scale_color_manual(
+          values = c(Good = unname(CONDITION_COLORS_5["Good"]),
+                     Great = unname(CONDITION_COLORS_5["Great"])),
+          name = NULL
+        )
+
+      for (b in c("Good", "Great")) {
+        sub <- fit_long |> filter(band == b)
+        if (nrow(sub) >= 3L) {
+          band_df <- bayes_lm_band(sub, x = "cal_year", y = "n_days",
+                                   seed = if (b == "Good") 301L else 302L)
+          if (!is.null(band_df)) {
+            fill_col <- if (b == "Good") "#d9f99d" else "#bbf7d0"
+            line_col <- unname(CONDITION_COLORS_5[b])
+            p <- p +
+              geom_ribbon(
+                data = band_df,
+                aes(x = x, ymin = .lower, ymax = .upper),
+                inherit.aes = FALSE,
+                fill = fill_col, alpha = 0.35
+              ) +
+              geom_line(
+                data = band_df,
+                aes(x = x, y = .mean),
+                inherit.aes = FALSE,
+                color = line_col, linewidth = 0.9
+              )
+          }
+        }
+        if (nrow(sub) >= 5L) {
+          p <- p +
+            geom_smooth(
+              data = sub, method = "loess", formula = y ~ x, se = FALSE,
+              linetype = "dashed", linewidth = 0.7, show.legend = FALSE
+            )
+        }
+      }
+
+      if (nrow(cur_long) > 0) {
+        p <- p +
+          geom_point(
+            data = cur_long, size = 2.8, shape = 21,
+            fill = "white", stroke = 1.1
+          )
+      }
+
+      p +
+        labs(
+          x = x_lab, y = "Days",
+          title = "Days at Good / Great trail scores"
+        ) +
+        theme_trailpulse() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+              legend.position = "bottom")
+    }
+  }
+
+  p_sm <- .trend_panel_bayes(
+    sm, "cal_year", "mean_jja_sm",
+    y_lab = expression("Mean JJA soil wetness (m"^3 * "/m"^3 * ")"),
+    title = "Mean summer (JJA) soil moisture",
+    x_lab = x_lab,
+    seed = 303L
+  )
+
+  # Panel 3: first + last DOY on same axes
+  p_streak <- {
+    if (nrow(streak) == 0 || all(is.na(streak$first_doy) & is.na(streak$last_doy))) {
+      ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No qualifying streaks") +
+        theme_void() +
+        labs(title = "First / last score > 6 for 7+ days")
+    } else {
+      long <- streak |>
+        tidyr::pivot_longer(
+          c(first_doy, last_doy),
+          names_to = "which", values_to = "doy"
+        ) |>
+        filter(!is.na(doy)) |>
+        mutate(
+          which = dplyr::recode(which, first_doy = "First", last_doy = "Last"),
+          which = factor(which, levels = c("First", "Last"))
+        )
+
+      fit_long <- long |> filter(!incomplete)
+      cur_long <- long |> filter(is_current)
+      hist_long <- long |> filter(!is_current)
+
+      p <- ggplot(long, aes(x = cal_year, y = doy, color = which)) +
+        geom_line(data = fit_long, linewidth = 0.6, na.rm = TRUE) +
+        geom_point(data = hist_long, size = 2, na.rm = TRUE) +
+        scale_color_manual(
+          values = c(First = "#2563eb", Last = "#b45309"),
+          name = NULL
+        ) +
+        scale_y_continuous(
+          breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+          labels = month.abb
+        )
+
+      for (w in c("First", "Last")) {
+        sub <- fit_long |> filter(which == w)
+        if (nrow(sub) >= 3L) {
+          band_df <- bayes_lm_band(sub, x = "cal_year", y = "doy",
+                                   seed = if (w == "First") 304L else 305L)
+          if (!is.null(band_df)) {
+            fill_col <- if (w == "First") "#bfdbfe" else "#fde68a"
+            line_col <- if (w == "First") "#2563eb" else "#b45309"
+            p <- p +
+              geom_ribbon(
+                data = band_df,
+                aes(x = x, ymin = .lower, ymax = .upper),
+                inherit.aes = FALSE,
+                fill = fill_col, alpha = 0.3
+              ) +
+              geom_line(
+                data = band_df,
+                aes(x = x, y = .mean),
+                inherit.aes = FALSE,
+                color = line_col, linewidth = 0.9
+              )
+          }
+        }
+        if (nrow(sub) >= 5L) {
+          p <- p +
+            geom_smooth(
+              data = sub, method = "loess", formula = y ~ x, se = FALSE,
+              linetype = "dashed", linewidth = 0.7, show.legend = FALSE
+            )
+        }
+      }
+
+      if (nrow(cur_long) > 0) {
+        p <- p +
+          geom_point(
+            data = cur_long, size = 2.8, shape = 21,
+            fill = "white", stroke = 1.1
+          )
+      }
+
+      p +
+        labs(
+          x = x_lab, y = "Day of year",
+          title = "First / last date with score > 6 for 7+ days"
+        ) +
+        theme_trailpulse() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+              legend.position = "bottom")
+    }
+  }
+
+  (p_gg / p_sm / p_streak) +
+    plot_annotation(
+      caption = glue(
+        "{ci_note}\n",
+        "Aggregates use calendar year. Open points = incomplete current year."
       ),
       theme = theme(
         plot.caption = element_text(size = 7, color = "grey50", hjust = 0)
