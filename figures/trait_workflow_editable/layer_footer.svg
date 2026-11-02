@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="100" viewBox="0 0 1600 100" xmlns="http://www.w3.org/2000/svg"><rect width="1600" height="100" fill="#ffffff" /><g id="layer_footer" transform="translate(0,-1040)">
+<defs>
+  <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#3498DB" />
+    <stop offset="45%" stop-color="#A67C52" />
+    <stop offset="100%" stop-color="#2E8B57" />
+  </linearGradient>
+</defs>
+<path d="M 40 1055 L 1520 1055 L 1520 1047 L 1565 1065 L 1520 1083 L 1520 1075 L 40 1075 Z" fill="url(#footerGrad)" stroke="#333" stroke-width="0.8" />
+<text x="220.0" y="1103.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a5276">Remote sensing observations</text>
+<text x="800.0" y="1103.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" font-style="normal" text-anchor="middle" fill="#6e4b2a">Reconstructed community trait distributions</text>
+<text x="1300.0" y="1103.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" font-style="normal" text-anchor="middle" fill="#1e5c38">Mechanistic understanding and forecasting</text>
+</g>
+<defs /></svg>
