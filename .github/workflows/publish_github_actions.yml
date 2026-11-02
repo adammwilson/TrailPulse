@@ -1,5 +1,6 @@
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
@@ -15,7 +16,10 @@ name: Quarto Publish
 
 jobs:
   build-deploy:
-    runs-on: ubuntu-latest
+    # Pin away from ubuntu-latest (26.04/resolute as of ~2026-10-31): GCC 15
+    # breaks s2 1.1.9's vendored Abseil (`uintptr_t` / missing <cstdint>).
+    # 24.04 matches the last green Quarto Publish runs.
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
@@ -30,7 +34,22 @@ jobs:
       - name: Install Linux Library Dependencies
         run: |-
           sudo apt-get update
-          sudo apt-get install -y --fix-missing libudunits2-dev libgdal-dev libgeos-dev libproj-dev libfontconfig1-dev libglpk40 libglpk-dev
+          sudo apt-get install -y --fix-missing \
+            libudunits2-dev libgdal-dev libgeos-dev libproj-dev \
+            libfontconfig1-dev libglpk40 libglpk-dev \
+            libssl-dev libabsl-dev cmake pkg-config
+
+      - name: Configure R Makevars for Abseil/GCC
+        run: |-
+          mkdir -p "$HOME/.R"
+          # Ensure ~/.R/Makevars exists (avoids readRenviron warning) and force
+          # <cstdint> into CXX compiles so vendored Abseil builds if needed.
+          cat > "$HOME/.R/Makevars" <<'EOF'
+          CXXFLAGS += -include cstdint
+          CXX11FLAGS += -include cstdint
+          CXX14FLAGS += -include cstdint
+          CXX17FLAGS += -include cstdint
+          EOF
 
       - name: Install R
         uses: r-lib/actions/setup-r@v2
@@ -40,9 +59,10 @@ jobs:
       - name: Install R Dependencies
         uses: r-lib/actions/setup-renv@v2
         with:
-          cache-version: 2
+          cache-version: 3
 
       - name: Restore weather data cache
+        if: github.event_name != 'pull_request'
         uses: actions/cache@v4
         with:
           path: |
@@ -54,9 +74,11 @@ jobs:
             park-cache-
 
       - name: Pre-fetch weather data for all parks
+        if: github.event_name != 'pull_request'
         run: Rscript scripts/prefetch_all_parks.R
 
       - name: Render and Publish
+        if: github.event_name != 'pull_request'
         uses: quarto-dev/quarto-actions/publish@v2
         with:
           target: gh-pages
