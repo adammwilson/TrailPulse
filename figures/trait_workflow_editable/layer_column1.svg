@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600" viewBox="0 0 480 600" xmlns="http://www.w3.org/2000/svg"><rect width="480" height="600" fill="#ffffff" /><g id="layer_column1" transform="translate(20,30)">
+<text x="0.0" y="0.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" text-anchor="start" fill="#1a1a1a">1. Hindcast Functional Plant Traits</text>
+<text x="0.0" y="20.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" font-style="italic" text-anchor="start" fill="#444">with multispectral imagery and recent imaging spectroscopy</text>
+<g id="c1_inputs">
+<g id="pixel-grid" transform="translate(10,45)">
+<rect x="0.0" y="0.0" width="12" height="12" fill="#6B8E4E" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="0.0" width="12" height="12" fill="#8FBC6B" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="0.0" width="12" height="12" fill="#A67C52" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="13.2" width="12" height="12" fill="#7A9E5A" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="13.2" width="12" height="12" fill="#C4A574" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="13.2" width="12" height="12" fill="#6B8E4E" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="26.4" width="12" height="12" fill="#A67C52" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="26.4" width="12" height="12" fill="#6B8E4E" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="26.4" width="12" height="12" fill="#8FBC6B" stroke="#555" stroke-width="0.6" />
+</g>
+<text x="10.0" y="100.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">Multispectral imagery</text>
+<text x="10.0" y="112.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">(Landsat, Sentinel)</text>
+<g id="pixel-grid" transform="translate(150,45)">
+<rect x="0.0" y="0.0" width="12" height="12" fill="#3D8B40" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="0.0" width="12" height="12" fill="#C6D94E" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="0.0" width="12" height="12" fill="#7CB342" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="13.2" width="12" height="12" fill="#F0C040" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="13.2" width="12" height="12" fill="#66BB6A" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="13.2" width="12" height="12" fill="#AED581" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="26.4" width="12" height="12" fill="#8BC34A" stroke="#555" stroke-width="0.6" />
+<rect x="13.2" y="26.4" width="12" height="12" fill="#D4E157" stroke="#555" stroke-width="0.6" />
+<rect x="26.4" y="26.4" width="12" height="12" fill="#43A047" stroke="#555" stroke-width="0.6" />
+</g>
+<text x="150.0" y="100.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">Imaging spectroscopy</text>
+<text x="150.0" y="112.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">(BioSCape, SHIFT, AVIRIS)</text>
+<g id="plant-icon" transform="translate(300,40) scale(0.85)">
+  <path d="M12 40 C12 28, 4 22, 4 12 C10 14, 14 22, 14 40 Z" fill="#2E8B57" opacity="0.85" />
+  <path d="M16 40 C16 26, 28 18, 30 8 C22 12, 18 24, 18 40 Z" fill="#2E8B57" />
+  <line x1="14" y1="40" x2="14" y2="48" stroke="#5D4037" stroke-width="2" />
+</g>
+<g id="clipboard-icon" transform="translate(340,42) scale(0.9)">
+  <rect x="4" y="8" width="28" height="36" rx="3" fill="#f7f7f7" stroke="#444" stroke-width="1.5" />
+  <rect x="10" y="2" width="16" height="10" rx="2" fill="#ddd" stroke="#444" stroke-width="1.2" />
+  <line x1="10" y1="20" x2="26" y2="20" stroke="#2E8B57" stroke-width="2" />
+  <line x1="10" y1="26" x2="26" y2="26" stroke="#2E8B57" stroke-width="2" />
+  <line x1="10" y1="32" x2="22" y2="32" stroke="#2E8B57" stroke-width="2" />
+  <polyline points="10,38 13,41 20,34" fill="none" stroke="#2E8B57" stroke-width="2" />
+</g>
+<text x="300.0" y="100.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">Field data</text>
+<text x="300.0" y="112.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" font-style="normal" text-anchor="start" fill="#333">(plots, traits)</text>
+</g>
+<g id="c1_flow_arrows">
+<line x1="40" y1="125" x2="40" y2="159" stroke="#222" stroke-width="1.8" /><polygon points="35,157 45,157 40,165" fill="#222" />
+<line x1="180" y1="125" x2="180" y2="159" stroke="#222" stroke-width="1.8" /><polygon points="175,157 185,157 180,165" fill="#222" />
+<line x1="340" y1="125" x2="340" y2="159" stroke="#222" stroke-width="1.8" /><polygon points="335,157 345,157 340,165" fill="#222" />
+</g>
+<g id="c1_annual_maps">
+<text x="215.0" y="160.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a1a1a">Annual maps of community mean traits (1984 – present – 2050)</text>
+<g id="pixel-grid" transform="translate(40,180)">
+<rect x="0.0" y="0.0" width="13" height="13" fill="#7A9E5A" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="0.0" width="13" height="13" fill="#A67C52" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="0.0" width="13" height="13" fill="#6B8E4E" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="14.3" width="13" height="13" fill="#8FBC6B" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="14.3" width="13" height="13" fill="#6B8E4E" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="14.3" width="13" height="13" fill="#C4A574" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="28.6" width="13" height="13" fill="#A67C52" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="28.6" width="13" height="13" fill="#7A9E5A" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="28.6" width="13" height="13" fill="#8FBC6B" stroke="#555" stroke-width="0.6" />
+</g>
+<text x="60.0" y="235.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a1a1a">1984</text>
+<text x="130.0" y="205.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="normal" font-style="normal" text-anchor="middle" fill="#666">...</text>
+<g id="pixel-grid" transform="translate(160,180)">
+<rect x="0.0" y="0.0" width="13" height="13" fill="#66BB6A" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="0.0" width="13" height="13" fill="#F0C040" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="0.0" width="13" height="13" fill="#8BC34A" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="14.3" width="13" height="13" fill="#AED581" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="14.3" width="13" height="13" fill="#43A047" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="14.3" width="13" height="13" fill="#C6D94E" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="28.6" width="13" height="13" fill="#7CB342" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="28.6" width="13" height="13" fill="#D4E157" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="28.6" width="13" height="13" fill="#66BB6A" stroke="#555" stroke-width="0.6" />
+</g>
+<text x="185.0" y="235.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a1a1a">Present</text>
+<text x="250.0" y="205.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="normal" font-style="normal" text-anchor="middle" fill="#666">...</text>
+<g id="pixel-grid" transform="translate(280,180)">
+<rect x="0.0" y="0.0" width="13" height="13" fill="#FFCC80" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="0.0" width="13" height="13" fill="#EF9A9A" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="0.0" width="13" height="13" fill="#FFE082" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="14.3" width="13" height="13" fill="#A5D6A7" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="14.3" width="13" height="13" fill="#FFCC80" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="14.3" width="13" height="13" fill="#EF9A9A" stroke="#555" stroke-width="0.6" />
+<rect x="0.0" y="28.6" width="13" height="13" fill="#FFE082" stroke="#555" stroke-width="0.6" />
+<rect x="14.3" y="28.6" width="13" height="13" fill="#A5D6A7" stroke="#555" stroke-width="0.6" />
+<rect x="28.6" y="28.6" width="13" height="13" fill="#FFCC80" stroke="#555" stroke-width="0.6" />
+</g>
+<text x="305.0" y="235.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a1a1a">2050 (forecast)</text>
+</g>
+<g id="c1_trait_legend">
+<text x="215.0" y="270.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" font-style="normal" text-anchor="middle" fill="#1a1a1a">Community mean traits (per pixel, per year)</text>
+<circle cx="55" cy="295" r="8" fill="#2E8B57" stroke="#333" stroke-width="0.8" />
+<text x="69.0" y="299.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" font-style="normal" text-anchor="start" fill="#1a1a1a">Leaf N</text>
+<circle cx="140" cy="295" r="8" fill="#E67E22" stroke="#333" stroke-width="0.8" />
+<text x="154.0" y="299.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" font-style="normal" text-anchor="start" fill="#1a1a1a">LMA</text>
+<circle cx="225" cy="295" r="8" fill="#3498DB" stroke="#333" stroke-width="0.8" />
+<text x="239.0" y="299.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" font-style="normal" text-anchor="start" fill="#1a1a1a">Water content</text>
+<circle cx="310" cy="295" r="8" fill="#E74C3C" stroke="#333" stroke-width="0.8" />
+<text x="324.0" y="299.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" font-style="normal" text-anchor="start" fill="#1a1a1a">Pigments</text>
+<text x="400.0" y="299.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" font-weight="normal" font-style="normal" text-anchor="start" fill="#666">...</text>
+</g>
+</g>
+</svg>
