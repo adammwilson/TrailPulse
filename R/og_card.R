@@ -1,7 +1,8 @@
 # R/og_card.R
 # Generates a 1200×630 social-media card (Open Graph / Twitter) for a park page.
-# Score-forward layout: large Avoid→Great label + numeric score + color scale.
-# Optional mudface/snowface PNGs are secondary (corner accent) and easy to disable.
+# Visual: short-window TrailPulse score graph (yesterday → +2 days).
+# Scale labels live INSIDE the plot on the left edge (no external scale bar),
+# aligned to Avoid→Great bands; forecast segment is dashed with open points.
 # Overwrites stable og-card.png each render.
 #
 # Snow mode: Dec–Mar calendar window, or snow on the ground (>2 cm) otherwise.
@@ -18,34 +19,17 @@ og_card_mode <- function(date = Sys.Date(), snow_depth_cm = 0) {
   if (in_dec_mar || has_snow) "snow" else "trail"
 }
 
-# ── Condition rank & optional face asset for an explicit mode ────────────────
+# ── Condition rank for an explicit mode ──────────────────────────────────────
 .og_rank <- function(mode, condition_score) {
   score <- if (is.null(condition_score) || is.na(condition_score)) 5.0
            else as.numeric(condition_score)
   score <- pmax(1, pmin(10, score))
-  idir  <- if (identical(mode, "snow")) "snowface" else "mudface"
   lbl   <- score_to_label(score)
   if (is.na(lbl)) lbl <- "Poor"
   clr   <- condition_color(lbl)
-  icon_n <- if      (score >= 8) 1L
-            else if (score >= 6) 2L
-            else if (score >= 2) 3L
-            else                 4L
-  list(label = lbl, icon_num = icon_n, icon_dir = idir,
-       rank_col = clr, score = score)
+  list(label = lbl, rank_col = clr, score = score)
 }
 
-# Locate img/<subdir>/ from either the project root or a parks/*/ subdirectory.
-.icon_dir <- function(subdir) {
-  sentinel <- sprintf("%s01.png", subdir)
-  candidates <- c(file.path("img", subdir), file.path("../../img", subdir))
-  for (d in candidates) {
-    if (file.exists(file.path(d, sentinel))) return(d)
-  }
-  stop("Cannot locate img/", subdir, "/ directory")
-}
-
-# Locate img/logo.png from either the project root or a parks/*/ subdirectory.
 .logo_path <- function() {
   candidates <- c(file.path("img", "logo.png"), file.path("../../img", "logo.png"))
   for (p in candidates) if (file.exists(p)) return(p)
@@ -59,6 +43,226 @@ og_card_mode <- function(date = Sys.Date(), snow_depth_cm = 0) {
   x <- gsub("<", "&lt;", x, fixed = TRUE)
   x <- gsub(">", "&gt;", x, fixed = TRUE)
   x
+}
+
+# Point color from score — same breaks as condition_color / plots.R bands.
+.score_pt_color <- function(score) {
+  dplyr::case_when(
+    is.na(score)       ~ "#888888",
+    score >= 8         ~ unname(CONDITION_COLORS_5["Great"]),
+    score >= 6         ~ unname(CONDITION_COLORS_5["Good"]),
+    score >= 2         ~ unname(CONDITION_COLORS_5["Poor"]),
+    TRUE               ~ unname(CONDITION_COLORS_5["Avoid"])
+  )
+}
+
+# ── Short-window score series (yesterday → +2 days) ──────────────────────────
+# Returns a tibble: day_index, date, score, is_forecast, x_label, pt_color.
+short_window_score_series <- function(weather_df,
+                                      mode = c("trail", "snow"),
+                                      as_of = Sys.Date()) {
+  mode  <- match.arg(mode)
+  as_of <- as.Date(as_of)
+  score_col <- if (identical(mode, "snow"))
+    "snow_condition_score" else "condition_score"
+
+  if (is.null(weather_df) || !score_col %in% names(weather_df)) {
+    return(tibble::tibble(
+      day_index   = 1:4,
+      date        = as_of + (-1L:2L),
+      score       = NA_real_,
+      is_forecast = c(FALSE, FALSE, TRUE, TRUE),
+      x_label     = c("Yesterday", "Today", "Tomorrow", "+2 days"),
+      pt_color    = "#888888"
+    ))
+  }
+
+  days   <- as_of + (-1L:2L)
+  labels <- c("Yesterday", "Today", "Tomorrow", "+2 days")
+
+  rows <- lapply(seq_along(days), function(i) {
+    d   <- days[[i]]
+    sub <- weather_df |> dplyr::filter(date == d)
+    sc  <- NA_real_
+    if (nrow(sub) > 0) {
+      if (d <= as_of) {
+        hist <- sub |>
+          dplyr::filter(is.na(source) | source != "forecast")
+        if (nrow(hist) > 0) sub <- hist
+      } else {
+        fc <- sub |> dplyr::filter(source == "forecast")
+        if (nrow(fc) > 0) sub <- fc
+      }
+      sc <- suppressWarnings(as.numeric(sub[[score_col]][[1]]))
+    }
+    tibble::tibble(
+      day_index   = i,
+      date        = d,
+      score       = sc,
+      is_forecast = d > as_of,
+      x_label     = labels[[i]]
+    )
+  })
+
+  out <- dplyr::bind_rows(rows)
+
+  # Fill gaps with nearest available score so the line still renders.
+  if (all(is.na(out$score))) {
+    out$score <- 5.0
+  } else {
+    for (i in seq_len(nrow(out))) {
+      if (!is.na(out$score[[i]])) next
+      known <- which(!is.na(out$score))
+      j <- known[which.min(abs(known - i))]
+      out$score[[i]] <- out$score[[j]]
+    }
+  }
+
+  out$score    <- pmax(1, pmin(10, out$score))
+  out$pt_color <- .score_pt_color(out$score)
+  out
+}
+
+# ── Short-window ggplot (shared by OG card + park heroes) ────────────────────
+# Band breaks match CONDITION_BREAKS / plots.R: Avoid <2, Poor <6, Good <8, Great.
+# Labels sit INSIDE the panel on the left edge at each band midpoint.
+# Observed (yesterday→today): solid line + filled points.
+# Forecast (today→+2): dashed line + hollow points.
+plot_short_window_score <- function(series,
+                                    y_min = 0,
+                                    y_max = 10,
+                                    show_y_numbers = TRUE,
+                                    base_size = 11) {
+  stopifnot(is.data.frame(series), nrow(series) >= 2)
+  series <- series |>
+    dplyr::arrange(day_index) |>
+    dplyr::mutate(
+      x_label = factor(x_label, levels = x_label),
+      x_num   = as.numeric(day_index)
+    )
+
+  # Segment tables: solid through today; dashed from today onward.
+  today_i <- which(!series$is_forecast)
+  today_i <- if (length(today_i)) max(today_i) else 2L
+  obs_df  <- series |> dplyr::filter(day_index <= today_i)
+  fc_df   <- series |> dplyr::filter(day_index >= today_i)
+
+  # Band rects — same y breaks as condition_color / site score bands.
+  bands <- tibble::tibble(
+    ymin  = c(y_min, 2, 6, 8),
+    ymax  = c(2, 6, 8, y_max),
+    label = c("Avoid", "Poor", "Good", "Great"),
+    fill  = unname(CONDITION_COLORS_5[c("Avoid", "Poor", "Good", "Great")])
+  )
+  bands$y_mid <- (bands$ymin + bands$ymax) / 2
+
+  x_min <- 0.55
+  x_max <- max(series$x_num) + 0.45
+  # Leave a left gutter inside the panel for scale labels.
+  label_x <- x_min + 0.08
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_rect(
+      data = bands,
+      ggplot2::aes(xmin = x_min, xmax = x_max, ymin = ymin, ymax = ymax, fill = fill),
+      alpha = 0.18, color = NA, inherit.aes = FALSE
+    ) +
+    ggplot2::scale_fill_identity() +
+    # In-panel scale labels (left edge), colored to match bands — no external bar.
+    ggplot2::geom_text(
+      data = bands,
+      ggplot2::aes(x = label_x, y = y_mid, label = label, color = fill),
+      hjust = 0, vjust = 0.5, size = base_size * 0.32, fontface = "bold",
+      inherit.aes = FALSE
+    ) +
+    ggplot2::scale_color_identity() +
+    # Today vertical guide + "Forecast →"
+    ggplot2::geom_vline(
+      xintercept = today_i, linetype = "dashed",
+      color = "#9ca3af", linewidth = 0.45
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = today_i + 0.12, y = y_max - 0.35,
+      label = "Forecast \u2192",
+      hjust = 0, vjust = 1, size = base_size * 0.28, color = "#6b7280"
+    ) +
+    # Observed solid
+    { if (nrow(obs_df) >= 2)
+        ggplot2::geom_line(
+          data = obs_df,
+          ggplot2::aes(x = x_num, y = score),
+          color = "#1f2937", linewidth = 1.35, lineend = "round"
+        ) } +
+    # Forecast dashed
+    { if (nrow(fc_df) >= 2)
+        ggplot2::geom_line(
+          data = fc_df,
+          ggplot2::aes(x = x_num, y = score),
+          color = "#1f2937", linewidth = 1.25, linetype = "22",
+          lineend = "round"
+        ) } +
+    # Observed points (filled)
+    ggplot2::geom_point(
+      data = series |> dplyr::filter(!is_forecast),
+      ggplot2::aes(x = x_num, y = score),
+      color = (series |> dplyr::filter(!is_forecast))$pt_color,
+      size = 3.4, stroke = 0
+    ) +
+    # Forecast points (hollow / open)
+    ggplot2::geom_point(
+      data = series |> dplyr::filter(is_forecast),
+      ggplot2::aes(x = x_num, y = score),
+      shape = 21,
+      fill = "white",
+      color = (series |> dplyr::filter(is_forecast))$pt_color,
+      size = 3.4, stroke = 1.4
+    ) +
+    ggplot2::scale_x_continuous(
+      breaks = series$x_num,
+      labels = series$x_label,
+      limits = c(x_min, x_max),
+      expand = c(0, 0)
+    ) +
+    ggplot2::scale_y_continuous(
+      limits = c(y_min, y_max),
+      breaks = if (isTRUE(show_y_numbers)) c(2, 4, 6, 8, 10) else NULL,
+      position = "right",
+      expand = c(0, 0)
+    ) +
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::theme_minimal(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "#e5e7eb", linewidth = 0.3),
+      panel.background   = ggplot2::element_rect(fill = "white", color = NA),
+      plot.background    = ggplot2::element_rect(fill = "white", color = NA),
+      axis.title         = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_text(
+        color = "#374151",
+        size = base_size * 0.85
+      ),
+      axis.text.y = ggplot2::element_text(color = "#6b7280", size = base_size * 0.75),
+      plot.margin = ggplot2::margin(8, 10, 6, 6)
+    )
+
+  p
+}
+
+# Save a standalone short-window PNG (park hero / landing reuse).
+save_short_window_score <- function(series,
+                                    path,
+                                    width_in = 7.2,
+                                    height_in = 2.9,
+                                    dpi = 140) {
+  p <- plot_short_window_score(series, base_size = 12)
+  out_dir <- dirname(path)
+  if (!identical(out_dir, ".") && !identical(out_dir, "")) {
+    dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  }
+  ggplot2::ggsave(path, p, width = width_in, height = height_in, dpi = dpi, bg = "white")
+  invisible(path)
 }
 
 # Build one-line OG title / description from the same inputs as the card.
@@ -117,21 +321,22 @@ write_og_meta <- function(title, description, path = "og-meta.html") {
 
 
 # ── Main card generator ──────────────────────────────────────────────────────
-# Layout priority: park name → huge condition label + score → color bar →
-# secondary stats (temp / season) → brand. Face PNGs are optional corner accents.
+# Layout: brand + park identity → status chip → short-window graph (hero) →
+# compact secondary stats. No cartoon faces. No GO/NO-GO.
 
 generate_og_card <- function(
     park_name            = "Hunters Creek Park",
     location             = "Wales, NY",
     mode                 = c("trail", "snow"),
     condition_score      = NULL,
+    score_series         = NULL,  # from short_window_score_series(); optional
     temp_high_f          = NULL,
     temp_low_f           = NULL,
     precip_7d_mm         = NULL,
     forecast_summary     = NULL,
     snow_depth_cm        = NULL,
     snowfall_48h_cm      = NULL,
-    show_face            = TRUE,   # FALSE = score-only (easy swap-out of cartoons)
+    show_face            = FALSE, # retained for API compat; faces no longer drawn
     # Deprecated aliases
     mud_condition_score  = NULL,
     snow_condition_score = NULL,
@@ -149,24 +354,33 @@ generate_og_card <- function(
   }
   if (is.null(temp_high_f) && !is.null(temp_f)) temp_high_f <- temp_f
 
-  rank       <- .og_rank(mode, condition_score)
-  lbl        <- rank$label
-  score      <- rank$score
-  score_frac <- (score - 1) / 9
+  # Prefer today's score from the series when available.
+  if (!is.null(score_series) && nrow(score_series) > 0) {
+    today_row <- score_series[!score_series$is_forecast, , drop = FALSE]
+    if (nrow(today_row) > 0 && (is.null(condition_score) || is.na(condition_score))) {
+      condition_score <- today_row$score[[nrow(today_row)]]
+    }
+  }
 
-  icon_img <- NULL
-  if (isTRUE(show_face)) {
-    icon_path <- file.path(
-      .icon_dir(rank$icon_dir),
-      sprintf("%s%02d.png", rank$icon_dir, rank$icon_num)
+  rank  <- .og_rank(mode, condition_score)
+  lbl   <- rank$label
+  score <- rank$score
+
+  if (is.null(score_series) || nrow(score_series) == 0) {
+    # Flat fallback so the card still renders without weather rows.
+    score_series <- tibble::tibble(
+      day_index   = 1:4,
+      date        = Sys.Date() + (-1L:2L),
+      score       = score,
+      is_forecast = c(FALSE, FALSE, TRUE, TRUE),
+      x_label     = c("Yesterday", "Today", "Tomorrow", "+2 days"),
+      pt_color    = .score_pt_color(score)
     )
-    if (file.exists(icon_path)) icon_img <- png::readPNG(icon_path)
   }
 
   lp       <- .logo_path()
   logo_img <- if (!is.null(lp)) png::readPNG(lp) else NULL
 
-  # Mode-tinted wash; accent from condition label (not go/no-go)
   if (identical(mode, "snow")) {
     bg_card   <- "#e8eef5"
     text_main <- "#0f1c2e"
@@ -182,18 +396,10 @@ generate_og_card <- function(
   accent  <- if (!is.null(acc_lkp[[lbl]]) && !is.na(acc_lkp[[lbl]]))
     acc_lkp[[lbl]] else "#1f2937"
 
-  # Segmented Avoid→Great scale colors (left→right)
-  scale_cols <- c("#ef4444", "#f59e0b", "#84cc16", "#22c55e")
-  fill_lkp   <- c(Avoid = "#f87171", Poor = "#fbbf24", Fair = "#fde047",
-                  Good = "#a3e635", Great = "#4ade80")
-  fill_col   <- if (!is.null(fill_lkp[[lbl]]) && !is.na(fill_lkp[[lbl]]))
-    fill_lkp[[lbl]] else "#84cc16"
-
   date_txt   <- format(Sys.Date(), "%B %d, %Y")
   score_txt  <- sprintf("%.1f", score)
   mode_label <- if (identical(mode, "snow")) "SNOW" else "TRAIL"
 
-  # Secondary stats (no emoji)
   if (identical(mode, "snow")) {
     depth_txt <- if (!is.null(snow_depth_cm) && !is.na(snow_depth_cm))
       sprintf("Depth %.0f cm", as.numeric(snow_depth_cm)) else NULL
@@ -231,90 +437,104 @@ generate_og_card <- function(
     snowfall_48h_cm  = snowfall_48h_cm
   )
 
-  # Geometry — score block centered; face tucked top-right if present
-  mx      <- 80     # left margin for primary content
-  mx_end  <- 1120
-  bar_y0  <- 300
-  bar_y1  <- 328
-  bar_fill <- mx + score_frac * (mx_end - mx)
-  seg_w   <- (mx_end - mx) / 4
+  # Render graph to a temp PNG, then place on the OG canvas (no external scale bar).
+  tmp_graph <- tempfile(fileext = ".png")
+  on.exit(unlink(tmp_graph), add = TRUE)
+  ggplot2::ggsave(
+    tmp_graph,
+    plot_short_window_score(score_series, base_size = 14),
+    width = 10.4, height = 4.05, dpi = 100, bg = "white"
+  )
+  graph_img <- png::readPNG(tmp_graph)
 
-  p <- ggplot() +
-    annotate("rect", xmin = 0, xmax = 1200, ymin = 0, ymax = 630, fill = bg_card) +
-    annotate("rect", xmin = 0, xmax = 10, ymin = 0, ymax = 630, fill = accent) +
+  # Geometry (y grows upward in annotate space)
+  mx     <- 56
+  mx_end <- 1144
+  # Graph panel
+  gx0 <- 48;  gx1 <- 1152
+  gy0 <- 88;  gy1 <- 430
 
-    # Park identity
-    annotate("text", x = mx, y = 580, label = park_name,
-             color = text_main, size = 9, fontface = "bold", hjust = 0) +
-    annotate("text", x = mx, y = 538,
-             label = paste0(location, "  \u2022  ", date_txt),
-             color = text_sub, size = 5.2, hjust = 0) +
-    annotate("text", x = mx, y = 500, label = mode_label,
-             color = text_sub, size = 4.2, fontface = "bold", hjust = 0) +
+  p <- ggplot2::ggplot() +
+    ggplot2::annotate("rect", xmin = 0, xmax = 1200, ymin = 0, ymax = 630,
+                      fill = bg_card) +
+    ggplot2::annotate("rect", xmin = 0, xmax = 10, ymin = 0, ymax = 630,
+                      fill = accent) +
 
-    # Primary: condition label (hero) + numeric score
-    annotate("text", x = mx, y = 430, label = toupper(lbl),
-             color = accent, size = 22, fontface = "bold", hjust = 0) +
-    annotate("text", x = mx_end, y = 430,
-             label = paste0(score_txt, " / 10"),
-             color = accent, size = 14, fontface = "bold", hjust = 1) +
-
-    # Clear 4-stop color scale track + fill + marker
-    annotate("rect", xmin = mx, xmax = mx + seg_w, ymin = bar_y0, ymax = bar_y1,
-             fill = scale_cols[[1]], alpha = 0.35) +
-    annotate("rect", xmin = mx + seg_w, xmax = mx + 2 * seg_w,
-             ymin = bar_y0, ymax = bar_y1, fill = scale_cols[[2]], alpha = 0.35) +
-    annotate("rect", xmin = mx + 2 * seg_w, xmax = mx + 3 * seg_w,
-             ymin = bar_y0, ymax = bar_y1, fill = scale_cols[[3]], alpha = 0.35) +
-    annotate("rect", xmin = mx + 3 * seg_w, xmax = mx_end,
-             ymin = bar_y0, ymax = bar_y1, fill = scale_cols[[4]], alpha = 0.35) +
-    annotate("rect", xmin = mx, xmax = bar_fill, ymin = bar_y0, ymax = bar_y1,
-             fill = fill_col, alpha = 0.95) +
-    annotate("segment", x = bar_fill, xend = bar_fill,
-             y = bar_y0 - 8, yend = bar_y1 + 8,
-             color = text_main, linewidth = 1.6) +
-    annotate("text", x = mx, y = 275, label = "Avoid",
-             color = text_sub, size = 4, hjust = 0) +
-    annotate("text", x = mx_end, y = 275, label = "Great",
-             color = text_sub, size = 4, hjust = 1) +
-
-    # Secondary stats
-    { if (!is.null(stat1))
-        annotate("text", x = mx, y = 220, label = stat1,
-                 color = text_main, size = 6.2, hjust = 0) } +
-    { if (!is.null(stat2))
-        annotate("text", x = mx, y = 175, label = stat2,
-                 color = text_main, size = 6.0, hjust = 0) } +
-
-    # Optional small face accent (secondary; omit with show_face = FALSE)
-    { if (!is.null(icon_img))
-        annotation_raster(icon_img, xmin = 980, xmax = 1160, ymin = 470, ymax = 610) } +
-
-    # Brand
+    # Brand + park identity (left)
     { if (!is.null(logo_img))
-        annotation_raster(logo_img, xmin = mx, xmax = mx + 46, ymin = 28, ymax = 74) } +
-    annotate("text", x = mx + 54, y = 52, label = "TrailPulse",
-             color = accent, size = 8.5, fontface = "bold", hjust = 0) +
+        ggplot2::annotation_raster(logo_img, xmin = mx, xmax = mx + 40,
+                                   ymin = 568, ymax = 608) } +
+    ggplot2::annotate(
+      "text",
+      x = if (!is.null(logo_img)) mx + 48 else mx,
+      y = 588, label = "TrailPulse",
+      color = accent, size = 5.5, fontface = "bold", hjust = 0, vjust = 0.5
+    ) +
+    ggplot2::annotate("text", x = mx, y = 545, label = park_name,
+                      color = text_main, size = 8.2, fontface = "bold",
+                      hjust = 0, vjust = 0.5) +
+    ggplot2::annotate(
+      "text", x = mx, y = 508,
+      label = paste0(location, "  \u00b7  Short-window score"),
+      color = text_sub, size = 4.6, hjust = 0, vjust = 0.5
+    ) +
 
-    coord_cartesian(xlim = c(0, 1200), ylim = c(0, 630), expand = FALSE) +
-    theme_void()
+    # Mode chip + status (right)
+    ggplot2::annotate("rect", xmin = 900, xmax = 980, ymin = 572, ymax = 604,
+                      fill = text_main, color = NA) +
+    ggplot2::annotate("text", x = 940, y = 588, label = mode_label,
+                      color = "white", size = 3.6, fontface = "bold",
+                      hjust = 0.5, vjust = 0.5) +
+    ggplot2::annotate("text", x = mx_end, y = 545, label = lbl,
+                      color = accent, size = 9, fontface = "bold",
+                      hjust = 1, vjust = 0.5) +
+    ggplot2::annotate(
+      "text", x = mx_end, y = 508,
+      label = paste0(score_txt, " / 10"),
+      color = accent, size = 5.8, fontface = "bold",
+      hjust = 1, vjust = 0.5
+    ) +
+
+    # White graph panel + short-window chart (labels already inside the plot)
+    ggplot2::annotate("rect", xmin = gx0 - 4, xmax = gx1 + 4,
+                      ymin = gy0 - 4, ymax = gy1 + 4,
+                      fill = "white", color = "#d1d5db", linewidth = 0.4) +
+    ggplot2::annotation_raster(graph_img, xmin = gx0, xmax = gx1,
+                               ymin = gy0, ymax = gy1) +
+
+    # Compact secondary stats under the graph
+    { if (!is.null(stat1))
+        ggplot2::annotate("text", x = mx, y = 58, label = stat1,
+                          color = text_main, size = 4.8, hjust = 0) } +
+    { if (!is.null(stat2))
+        ggplot2::annotate("text", x = mx_end, y = 58, label = stat2,
+                          color = text_main, size = 4.6, hjust = 1) } +
+    # Subtle as-of date
+    ggplot2::annotate(
+      "text", x = mx, y = 28, label = date_txt,
+      color = text_sub, size = 3.6, hjust = 0
+    ) +
+
+    ggplot2::coord_cartesian(xlim = c(0, 1200), ylim = c(0, 630), expand = FALSE) +
+    ggplot2::theme_void()
 
   out_dir <- dirname(output_path)
   if (!identical(out_dir, ".") && !identical(out_dir, "")) {
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   }
-  ggsave(output_path, p,
-         width  = width_px  / 100,
-         height = height_px / 100,
-         dpi    = 100,
-         bg     = bg_card)
+  ggplot2::ggsave(output_path, p,
+                  width  = width_px  / 100,
+                  height = height_px / 100,
+                  dpi    = 100,
+                  bg     = bg_card)
 
   invisible(list(
-    path        = output_path,
-    mode        = mode,
-    label       = lbl,
-    score       = score,
-    title       = meta$title,
-    description = meta$description
+    path         = output_path,
+    mode         = mode,
+    label        = lbl,
+    score        = score,
+    title        = meta$title,
+    description  = meta$description,
+    score_series = score_series
   ))
 }
