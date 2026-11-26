@@ -796,20 +796,24 @@ plot_trail_condition_history <- function(weather_df) {
 #    (TrailPulse Score / soil wetness / cumulative precip / temperature / streamflow)
 # ────────────────────────────────────────────────────────────────────────────
 plot_historical_conditions <- function(weather_df, stream_df) {
-  p_cond   <- plot_trail_condition_history(weather_df)
-  p_soil   <- plot_soil_moisture_history(weather_df)
-  p_precip <- plot_cumulative_precip_ytd(weather_df)
-  p_temp   <- plot_temperature_history(weather_df)
+  panels <- list(
+    plot_trail_condition_history(weather_df),
+    plot_soil_moisture_history(weather_df),
+    plot_cumulative_precip_ytd(weather_df),
+    plot_temperature_history(weather_df)
+  )
   p_stream <- plot_streamflow(stream_df)
+  if (!is.null(p_stream)) panels <- c(panels, list(p_stream))
 
-  (p_cond / p_soil / p_precip / p_temp / p_stream) +
-    patchwork::plot_layout(heights = c(1, 1, 1, 1, 1))
+  patchwork::wrap_plots(panels, ncol = 1, heights = rep(1, length(panels)))
 }
 
 # ────────────────────────────────────────────────────────────────────────────
 # 7. Streamflow — all water years spaghetti + quantile ribbons (ggplot2)
 # ────────────────────────────────────────────────────────────────────────────
 plot_streamflow <- function(stream_df) {
+  if (is.null(stream_df) || nrow(stream_df) == 0L) return(invisible(NULL))
+
   today_cy <- year(Sys.Date())
 
   sf <- stream_df |>
@@ -817,6 +821,8 @@ plot_streamflow <- function(stream_df) {
     mutate(cal_year  = year(date),
            doy       = yday(date),
            plot_date = as.Date(paste0("2000-", doy), format = "%Y-%j"))
+
+  if (nrow(sf) == 0L) return(invisible(NULL))
 
   hist_quants <- sf |>
     filter(cal_year < today_cy) |>
