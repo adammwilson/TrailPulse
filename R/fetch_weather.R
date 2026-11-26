@@ -39,7 +39,9 @@ fetch_weather <- function(
     cache_dir        = "data/cache",
     hist_max_age_h   = 24,   # archive-api: re-fetch at most once per day
     fc_max_age_h     = 1,    # forecast-api: re-fetch at most once per hour
-    api_key          = Sys.getenv("OPEN_METEO_API_KEY", unset = "")
+    api_key          = Sys.getenv("OPEN_METEO_API_KEY", unset = ""),
+    snow_start_month = if (exists("SNOW_START_MONTH")) SNOW_START_MONTH else 9L,
+    snow_start_day   = if (exists("SNOW_START_DAY"))   SNOW_START_DAY   else 1L
 ) {
   if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE)
 
@@ -285,13 +287,13 @@ fetch_weather <- function(
                      if_else(month(date) >= 10, year(date), year(date) - 1L), 10, 1
                    )) + 1L,
       snow_year  = if_else(
-        month(date) > SNOW_START_MONTH |
-          (month(date) == SNOW_START_MONTH & day(date) >= SNOW_START_DAY),
+        month(date) > snow_start_month |
+          (month(date) == snow_start_month & day(date) >= snow_start_day),
         year(date),
         year(date) - 1L
       ),
       doss       = as.integer(date - make_date(
-                     snow_year, SNOW_START_MONTH, SNOW_START_DAY
+                     snow_year, snow_start_month, snow_start_day
                    )) + 1L
     )
 
